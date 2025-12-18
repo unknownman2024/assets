@@ -1,77 +1,69 @@
-name: BMS Advance Data
+name: BMS Shard 1 Scraper (Save to Repo)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 18 * * *"   # 12:00 AM IST (adjust if needed)
+    # Daily 01:00 IST (19:30 UTC)
+    - cron: "30 19 * * *"
+
+permissions:
+  contents: write   # 🔴 REQUIRED to push commits
 
 jobs:
-  run-bms:
+  scrape:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
-      # --------------------------------------------------
-      # 1️⃣ CHECKOUT REPO
-      # --------------------------------------------------
-      - name: Checkout repository
+      # ---------------- CHECKOUT ----------------
+      - name: 🧾 Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          persist-credentials: true
 
-      # --------------------------------------------------
-      # 2️⃣ SETUP PYTHON
-      # --------------------------------------------------
-      - name: Setup Python
+      # ---------------- PYTHON ----------------
+      - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # --------------------------------------------------
-      # 3️⃣ INSTALL SYSTEM DEPENDENCIES (CHROME)
-      # --------------------------------------------------
-      - name: Install Chrome
+      # ---------------- CHROME ----------------
+      - name: 🌐 Install Google Chrome
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget gnupg
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y wget unzip
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+          google-chrome --version
 
-      # --------------------------------------------------
-      # 4️⃣ INSTALL PYTHON DEPENDENCIES
-      # --------------------------------------------------
-      - name: Install Python dependencies
+      # ---------------- DEPENDENCIES ----------------
+      - name: 📦 Install Python dependencies
         run: |
-          pip install --upgrade pip
-          pip install cloudscraper selenium webdriver-manager
+          python -m pip install --upgrade pip
+          pip install \
+            selenium \
+            webdriver-manager \
+            cloudscraper
 
-      # --------------------------------------------------
-      # 5️⃣ SETUP GIT CONFIG
-      # --------------------------------------------------
-      - name: Setup Git
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-      # --------------------------------------------------
-      # 6️⃣ ENSURE FOLDER STRUCTURE
-      # --------------------------------------------------
-      - name: Prepare folders
-        run: |
-          mkdir -p advance/date
-
-      # --------------------------------------------------
-      # 7️⃣ RUN SCRIPT
-      # --------------------------------------------------
-      - name: Run BMS script
+      # ---------------- RUN SCRAPER ----------------
+      - name: 🚀 Run BMS shard 1 scraper
+        env:
+          PYTHONUNBUFFERED: "1"
         run: |
           python bms1.py
 
-      # --------------------------------------------------
-      # 8️⃣ COMMIT ONLY ADVANCE DATA
-      # --------------------------------------------------
-      - name: Commit advance data
+      # ---------------- SAVE TO GITHUB ----------------
+      - name: 💾 Commit and push output
         run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
           git status
-          git add advance/date/
-          git commit -m "Advance data update $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git add advance/
+
+          git commit -m "Advance BMS shard 1 data ($(date +'%Y-%m-%d'))" || echo "Nothing to commit"
           git push
+
+      # ---------------- DONE ----------------
+      - name: ✅ Job completed
+        run: echo "Shard 1 completed & data saved to repo"
