@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 jobs:
-  scrape:
+  run:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -17,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: true
 
       # ---------------- PYTHON ----------------
       - name: 🐍 Setup Python
@@ -42,38 +43,24 @@ jobs:
 
       # ---------------- RUN SCRAPER ----------------
       - name: 🚀 Run BMS shard 3 scraper
-        env:
-          PYTHONUNBUFFERED: "1"
-        run: |
-          python bms3.py
-
-  push:
-    needs: scrape
-    runs-on: ubuntu-latest
-
-    # 🔴 Serialize ONLY the push
-    concurrency:
-      group: bms-advance-main
-      cancel-in-progress: false
-
-    steps:
-      # ---------------- CHECKOUT FOR PUSH ----------------
-      - name: 🧾 Checkout repo (push)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          persist-credentials: true
+        run: python bms3.py
 
       # ---------------- COMMIT & PUSH ----------------
-      - name: 💾 Commit and push output (NO FAIL)
+      - name: 💾 Commit & push (AUTO-RESOLVE CONFLICTS)
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          git status
           git add advance/
+          git commit -m "Advance BMS shard 2 ($(date +'%Y-%m-%d'))" || echo "Nothing to commit"
 
-          git commit -m "Advance BMS shard 3 ($(date +'%Y-%m-%d'))" || echo "Nothing to commit"
+          # 🔁 retry-safe push
+          for i in 1 2 3; do
+            git pull --rebase origin main || true
+            git push origin main && break
+            echo "🔁 Push retry $i failed, retrying..."
+            sleep 3
+          done
 
-          git pull --rebase origin main || true
-          git push origin main || git push --force-with-lease origin main
+          # 🔥 final guarantee
+          git push --force-with-lease origin main || true
