@@ -64,7 +64,7 @@ jobs:
       # --------------------------------------------------
       - name: Run BMS script
         run: |
-          python bookmyshownewV1.py
+          python bms1.py
 
       # --------------------------------------------------
       # 8️⃣ COMMIT ONLY ADVANCE DATA
