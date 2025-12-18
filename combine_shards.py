@@ -7,7 +7,7 @@ import pytz
 IST = pytz.timezone("Asia/Kolkata")
 date_ist_plus_1 = (datetime.now(IST) + timedelta(days=1)).strftime("%Y%m%d")
 
-BASE_DIR = f"data/{date_ist_plus_1}"
+BASE_DIR = f"advance/data/{date_ist_plus_1}"
 
 print(f"📁 Using directory: {BASE_DIR}")
 
