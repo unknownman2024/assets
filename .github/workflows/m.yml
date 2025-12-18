@@ -39,27 +39,30 @@ jobs:
           wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
           rm -f google-chrome-stable_current_amd64.deb
+          google-chrome --version
 
       # ---------------- DEPENDENCIES ----------------
       - name: 📦 Install Python dependencies
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install selenium webdriver-manager cloudscraper pytz
 
       # ---------------- RUN SHARD ----------------
-      - name: 🚀 Run shard script
+      - name: 🚀 Run shard scraper
         run: |
           python bms${{ matrix.shard }}.py
 
-      # ---------------- COMMIT & PUSH (SAFE) ----------------
+      # ---------------- COMMIT & PUSH SHARD DATA ----------------
       - name: 💾 Commit shard output
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          git add advance/ data/
+          git status
+          git add advance/
           git commit -m "Advance BMS shard ${{ matrix.shard }} ($(date +'%Y-%m-%d'))" || echo "Nothing to commit"
 
+          # retry-safe push
           for i in 1 2 3; do
             git pull --rebase origin main || true
             git push origin main && break
@@ -73,31 +76,36 @@ jobs:
     name: Combine all shards
     needs: shards
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
+      # ---------------- CHECKOUT ----------------
       - name: 🧾 Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: true
 
+      # ---------------- PYTHON ----------------
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: 🔗 Combine shard outputs
+      # ---------------- COMBINE ----------------
+      - name: 🔗 Combine shard JSONs
         run: |
           pip install pytz
           python combine_shards.py
 
-      - name: 💾 Commit final combined files
+      # ---------------- COMMIT & PUSH FINAL FILES ----------------
+      - name: 💾 Commit final combined JSONs
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          git add data/**/final*.json
+          git status
+          git add advance/data/**/final*.json
           git commit -m "Final combined BMS data ($(date +'%Y-%m-%d'))" || echo "Nothing to commit"
 
           git pull --rebase origin main || true
