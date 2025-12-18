@@ -24,19 +24,18 @@ NUM_WORKERS = 3
 MAX_ERRORS = 20
 MAX_RETRY_CLOUD = 2
 DUMP_EVERY = 25
-SHARD_ID = 1   # change to 2,3,4… for other shards
 
 IST = timezone(timedelta(hours=5, minutes=30))
 DATE_CODE = (datetime.now(IST) + timedelta(days=1)).strftime("%Y%m%d")
 
-BASE_DIR = f"advance/{DATE_CODE}"
+BASE_DIR = DATE_CODE
 os.makedirs(BASE_DIR, exist_ok=True)
 
-DATA_FILE = f"{BASE_DIR}/raw_{SHARD_ID}.json"
-FETCHED_FILE  = f"{BASE_DIR}/fetchedvenues_{SHARD_ID}.json"
-FAILED_FILE   = f"{BASE_DIR}/failedvenues_{SHARD_ID}.json"
-SUMMARY_FILE  = f"{BASE_DIR}/summary_{SHARD_ID}.json"
-DETAILED_FILE = f"{BASE_DIR}/detailed_{SHARD_ID}.json"
+DATA_FILE = f"{BASE_DIR}/venues_data.json"
+FETCHED_FILE = f"{BASE_DIR}/fetchedvenues.json"
+FAILED_FILE = f"{BASE_DIR}/failedvenues.json"
+SUMMARY_FILE = f"{BASE_DIR}/movie_summary.json"
+DETAILED_FILE = f"{BASE_DIR}/detailed.json"
 
 lock = threading.Lock()
 thread_local = threading.local()
@@ -407,10 +406,8 @@ def aggregate(all_data, venues_meta):
 # MAIN
 # ==========================================================
 if __name__ == "__main__":
-    with open(f"venues{SHARD_ID}.json") as f:
-        venues_meta = json.load(f)
-
-    venues = venues_meta   # same object
+    with open("venues1.json") as f:
+        venues = json.load(f)
 
     print(f"🚀 Hybrid start | workers={NUM_WORKERS}")
 
