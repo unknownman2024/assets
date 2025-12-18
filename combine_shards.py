@@ -8,6 +8,7 @@ IST = pytz.timezone("Asia/Kolkata")
 date_ist_plus_1 = (datetime.now(IST) + timedelta(days=1)).strftime("%Y%m%d")
 
 BASE_DIR = f"advance/data/{date_ist_plus_1}"
+OUTPUT_FILE = os.path.join(BASE_DIR, "finaldetailed.json")
 
 print(f"📁 Using directory: {BASE_DIR}")
 
@@ -18,47 +19,33 @@ def load_json(path):
             return json.load(f)
     except FileNotFoundError:
         print(f"⚠️ Missing: {path}")
-        return None
+        return []
     except json.JSONDecodeError:
         print(f"❌ Invalid JSON: {path}")
-        return None
+        return []
 
 
 def save_json(path, data):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-# ---------------- COMBINE DETAILED ----------------
-final_detailed = {}
+# ---------------- COMBINE DETAILED LISTS ----------------
+final_detailed = []
 
 for i in range(1, 9):
     file_path = os.path.join(BASE_DIR, f"detailed{i}.json")
     data = load_json(file_path)
 
-    if isinstance(data, dict):
-        final_detailed.update(data)
+    if isinstance(data, list):
+        final_detailed.extend(data)
+        print(f"✅ Added {len(data)} records from detailed{i}.json")
+    else:
+        print(f"⚠️ Skipped detailed{i}.json (not a list)")
 
-print(f"✅ Combined detailed files: {len(final_detailed)} entries")
+print(f"🎯 Total combined records: {len(final_detailed)}")
 
-save_json(os.path.join(BASE_DIR, "finaldetailed.json"), final_detailed)
+save_json(OUTPUT_FILE, final_detailed)
 
-
-# ---------------- COMBINE MOVIE SUMMARY ----------------
-final_movie_summary = {}
-
-for i in range(1, 9):
-    file_path = os.path.join(BASE_DIR, f"movie_summary{i}.json")
-    data = load_json(file_path)
-
-    if isinstance(data, dict):
-        final_movie_summary.update(data)
-
-print(f"✅ Combined movie summary files: {len(final_movie_summary)} entries")
-
-save_json(
-    os.path.join(BASE_DIR, "finalmovie_summary.json"),
-    final_movie_summary
-)
-
-print("🎉 All shard files combined successfully")
+print(f"🎉 finaldetailed.json created successfully")
