@@ -258,7 +258,8 @@ if __name__ == "__main__":
                 "totalSeats": r["totalSeats"],
                 "available":  r["available"],
                 "sold":       r["sold"],
-                "gross":      r["gross"]
+                "gross":      r["gross"],
+                "minsLeft":   r.get("minsLeft")
             })
             new_map[key] = old_map[key]
         else:
