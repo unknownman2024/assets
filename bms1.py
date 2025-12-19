@@ -64,7 +64,7 @@ def hard_timeout(seconds):
 # =====================================================
 thread_local = threading.local()
 all_data = {}
-empty_venues = set()
+retry_venues = set()   # ONLY real failures go here
 
 # =====================================================
 # USER AGENTS
@@ -111,7 +111,7 @@ def reset_identity():
     log("🔄 Browser identity reset")
 
 # =====================================================
-# API FETCH (FREEZE-PROOF)
+# API FETCH
 # =====================================================
 @hard_timeout(HARD_TIMEOUT)
 def fetch_api_raw(venue_code):
@@ -134,17 +134,22 @@ def fetch_api_raw(venue_code):
     return r.json()
 
 # =====================================================
-# PARSER (WITH DATE-MISMATCH SKIP)
+# PARSER — RETURNS (parsed_data, status)
 # =====================================================
 def parse_payload(data, venue_code):
+    # Case 1: Venue exists but no shows for ANY date
+    if data.get("AllShowDatesDisabled") is True:
+        log(f"⏩ ALL DATES DISABLED {venue_code}")
+        return {}, "ALL_DISABLED"
+
     sd = data.get("ShowDetails", [])
     if not sd:
-        return {}
+        return {}, "NO_SHOWS"
 
     api_date = sd[0].get("Date")
     if api_date and str(api_date) != str(DATE_CODE):
         log(f"⏩ DATE MISMATCH {venue_code} | API:{api_date} EXPECTED:{DATE_CODE}")
-        return {}
+        return {}, "DATE_MISMATCH"
 
     venue_info = sd[0].get("Venues", {})
     venue_name = venue_info.get("VenueName", "")
@@ -188,7 +193,10 @@ def parse_payload(data, venue_code):
                     "gross": round(gross, 2),
                 })
 
-    return out if shows else {}
+    if shows:
+        return out, "OK"
+
+    return {}, "NO_SHOWS"
 
 # =====================================================
 # MAIN
@@ -210,43 +218,55 @@ if __name__ == "__main__":
         log(f"[P1 {i}/{len(venue_codes)}] {vcode}")
         try:
             raw = fetch_api_raw(vcode)
-            data = parse_payload(raw, vcode)
-            if data:
-                all_data[vcode] = data
+            parsed, status = parse_payload(raw, vcode)
+
+            if status == "OK":
+                all_data[vcode] = parsed
                 log(f"✅ FETCHED {vcode}")
+
+            elif status in ("DATE_MISMATCH", "ALL_DISABLED", "NO_SHOWS"):
+                log(f"✅ FETCHED ({status}) {vcode}")
+
             else:
-                empty_venues.add(vcode)
-                log(f"⚠️ EMPTY {vcode}")
+                retry_venues.add(vcode)
+                log(f"❌ FAILED {vcode}")
+
         except Exception as e:
-            empty_venues.add(vcode)
+            retry_venues.add(vcode)
             log(f"❌ ERROR {vcode} | {type(e).__name__}")
             reset_identity()
 
         time.sleep(random.uniform(0.35, 0.75))
 
     # ---------------- PASS-2 ----------------
-    log(f"▶ PASS-2 : Soft retry ({len(empty_venues)})")
+    log(f"▶ PASS-2 : Soft retry ({len(retry_venues)})")
 
-    for vcode in list(empty_venues):
+    for vcode in list(retry_venues):
         try:
             raw = fetch_api_raw(vcode)
-            data = parse_payload(raw, vcode)
-            if data:
-                all_data[vcode] = data
-                empty_venues.remove(vcode)
+            parsed, status = parse_payload(raw, vcode)
+
+            if status == "OK":
+                all_data[vcode] = parsed
+                retry_venues.remove(vcode)
                 log(f"♻️ RECOVERED {vcode}")
+
+            elif status in ("DATE_MISMATCH", "ALL_DISABLED", "NO_SHOWS"):
+                retry_venues.remove(vcode)
+                log(f"✅ FETCHED ({status}) {vcode}")
+
         except Exception:
             time.sleep(random.uniform(0.8, 1.2))
 
     # ---------------- RECOVERY ----------------
     for round_no in range(1, MAX_RECOVERY_ROUNDS + 1):
-        if not empty_venues:
+        if not retry_venues:
             break
 
-        log(f"🔁 RECOVERY ROUND {round_no} ({len(empty_venues)})")
+        log(f"🔁 RECOVERY ROUND {round_no} ({len(retry_venues)})")
         reset_identity()
 
-        retry = list(empty_venues)
+        retry = list(retry_venues)
         random.shuffle(retry)
         time.sleep(min(2 + round_no * 0.8, 6))
 
@@ -254,11 +274,17 @@ if __name__ == "__main__":
             log(f"🔎 RETRY {vcode}")
             try:
                 raw = fetch_api_raw(vcode)
-                data = parse_payload(raw, vcode)
-                if data:
-                    all_data[vcode] = data
-                    empty_venues.remove(vcode)
+                parsed, status = parse_payload(raw, vcode)
+
+                if status == "OK":
+                    all_data[vcode] = parsed
+                    retry_venues.remove(vcode)
                     log(f"🛠️ RECOVERED {vcode}")
+
+                elif status in ("DATE_MISMATCH", "ALL_DISABLED", "NO_SHOWS"):
+                    retry_venues.remove(vcode)
+                    log(f"✅ FETCHED ({status}) {vcode}")
+
             except Exception as e:
                 log(f"⏰ FAIL {vcode} | {type(e).__name__}")
                 reset_identity()
@@ -308,4 +334,4 @@ if __name__ == "__main__":
     with open(DETAILED_FILE, "w", encoding="utf-8") as f:
         json.dump(detailed, f, indent=2)
 
-    log(f"✅ DONE — recovered {len(all_data)}/{len(venue_codes)} venues")
+    log(f"✅ DONE — fetched {len(venue_codes) - len(retry_venues)}/{len(venue_codes)} venues")
