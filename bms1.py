@@ -44,7 +44,7 @@ all_data = {}
 empty_venues = set()
 
 # =====================================================
-# HEADERS
+# USER AGENTS
 # =====================================================
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
@@ -52,46 +52,61 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/118 Safari/537.36",
 ]
 
-def headers():
-    ip = ".".join(str(random.randint(10, 240)) for _ in range(4))
-    return {
-        "User-Agent": random.choice(USER_AGENTS),
-        "Accept": "application/json, text/plain, */*",
-        "Origin": "https://in.bookmyshow.com",
-        "Referer": "https://in.bookmyshow.com/",
-        "X-Forwarded-For": ip,
-    }
-
 # =====================================================
-# CLOUDSCRAPER
+# IDENTITY (STICKY SESSION)
 # =====================================================
-def get_scraper():
-    if hasattr(thread_local, "scraper"):
-        return thread_local.scraper
+class Identity:
+    def __init__(self):
+        self.ua = random.choice(USER_AGENTS)
+        self.ip = ".".join(str(random.randint(20, 230)) for _ in range(4))
+        self.scraper = cloudscraper.create_scraper(
+            browser={"browser": "chrome", "platform": "windows", "desktop": True}
+        )
 
-    log("🧠 Creating cloudscraper session")
-    s = cloudscraper.create_scraper(
-        browser={"browser": "chrome", "platform": "windows", "desktop": True}
-    )
-    thread_local.scraper = s
-    return s
+    def headers(self):
+        return {
+            "User-Agent": self.ua,
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-IN,en;q=0.9",
+            "Origin": "https://in.bookmyshow.com",
+            "Referer": "https://in.bookmyshow.com/",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-ch-ua": '"Chromium";v="120", "Not=A?Brand";v="99"',
+            "X-Forwarded-For": self.ip,
+        }
+
+def get_identity():
+    if not hasattr(thread_local, "identity"):
+        log("🧠 Creating new browser identity")
+        thread_local.identity = Identity()
+    return thread_local.identity
 
 def reset_identity():
-    if hasattr(thread_local, "scraper"):
-        del thread_local.scraper
-    log("🔄 Identity reset")
+    if hasattr(thread_local, "identity"):
+        del thread_local.identity
+    log("🔄 Browser identity reset")
 
 # =====================================================
 # API FETCH
 # =====================================================
 def fetch_api_raw(venue_code):
+    ident = get_identity()
     url = (
         "https://in.bookmyshow.com/api/v2/mobile/showtimes/byvenue"
         f"?venueCode={venue_code}&dateCode={DATE_CODE}"
     )
-    r = get_scraper().get(url, headers=headers(), timeout=API_TIMEOUT)
-    if not r.text.strip().startswith("{"):
-        raise RuntimeError("Non-JSON response")
+
+    r = ident.scraper.get(
+        url,
+        headers=ident.headers(),
+        timeout=API_TIMEOUT
+    )
+
+    txt = r.text.strip()
+    if not txt.startswith("{"):
+        raise RuntimeError("Blocked / HTML response")
+
     return r.json()
 
 # =====================================================
@@ -152,15 +167,18 @@ def parse_payload(data):
 if __name__ == "__main__":
     log("🚀 SCRIPT STARTED")
 
-    with open("venues1.json", "r") as f:
+    with open("venues1.json", "r", encoding="utf-8") as f:
         venues = json.load(f)
 
-    log(f"🎯 Venues loaded: {len(venues)}")
+    venue_codes = list(venues.keys())
+    log(f"🎯 Venues loaded: {len(venue_codes)}")
 
     # ---------------- PASS 1 ----------------
-    log("▶ PASS-1 : API fetch")
-    for i, vcode in enumerate(venues.keys(), start=1):
-        log(f"[P1 {i}/{len(venues)}] {vcode}")
+    log("▶ PASS-1 : Primary API fetch")
+    random.shuffle(venue_codes)
+
+    for i, vcode in enumerate(venue_codes, start=1):
+        log(f"[P1 {i}/{len(venue_codes)}] {vcode}")
         try:
             data = parse_payload(fetch_api_raw(vcode))
             if data:
@@ -173,9 +191,11 @@ if __name__ == "__main__":
             empty_venues.add(vcode)
             log(f"❌ ERROR {vcode} | {e}")
 
+        time.sleep(random.uniform(0.25, 0.55))
+
     # ---------------- PASS 2 ----------------
     reset_identity()
-    log(f"▶ PASS-2 : API retry ({len(empty_venues)})")
+    log(f"▶ PASS-2 : Soft retry ({len(empty_venues)})")
 
     for vcode in list(empty_venues):
         try:
@@ -185,7 +205,7 @@ if __name__ == "__main__":
                 empty_venues.remove(vcode)
                 log(f"♻️ RECOVERED {vcode}")
         except Exception:
-            pass
+            time.sleep(random.uniform(0.6, 1.0))
 
     # ---------------- RECOVERY LOOPS ----------------
     for round_no in range(1, MAX_RECOVERY_ROUNDS + 1):
@@ -194,17 +214,24 @@ if __name__ == "__main__":
 
         log(f"🔁 RECOVERY ROUND {round_no} ({len(empty_venues)} venues)")
         reset_identity()
-        time.sleep(random.uniform(1.5, 3.0))
 
-        for vcode in list(empty_venues):
+        retry_list = list(empty_venues)
+        random.shuffle(retry_list)
+
+        sleep_base = min(2 + round_no * 0.8, 6)
+        time.sleep(random.uniform(sleep_base, sleep_base + 1.5))
+
+        for vcode in retry_list:
             try:
                 data = parse_payload(fetch_api_raw(vcode))
                 if data:
                     all_data[vcode] = data
                     empty_venues.remove(vcode)
                     log(f"🛠️ RECOVERED {vcode}")
+                else:
+                    time.sleep(random.uniform(0.4, 0.7))
             except Exception:
-                continue
+                time.sleep(random.uniform(0.8, 1.4))
 
     # ---------------- SAVE ----------------
     log("💾 Writing output files")
@@ -215,9 +242,14 @@ if __name__ == "__main__":
     for vcode, movies in all_data.items():
         for movie, shows in movies.items():
             m = summary.setdefault(movie, {
-                "shows": 0, "gross": 0, "sold": 0, "totalSeats": 0, "venues": set()
+                "shows": 0,
+                "gross": 0,
+                "sold": 0,
+                "totalSeats": 0,
+                "venues": set()
             })
             m["venues"].add(vcode)
+
             for s in shows:
                 m["shows"] += 1
                 m["gross"] += s["gross"]
@@ -234,7 +266,7 @@ if __name__ == "__main__":
                     "date": DATE_CODE
                 })
 
-    final = {
+    final_summary = {
         k: {
             "shows": v["shows"],
             "gross": round(v["gross"], 2),
@@ -244,10 +276,10 @@ if __name__ == "__main__":
         } for k, v in summary.items()
     }
 
-    with open(SUMMARY_FILE, "w") as f:
-        json.dump(final, f, indent=2)
+    with open(SUMMARY_FILE, "w", encoding="utf-8") as f:
+        json.dump(final_summary, f, indent=2)
 
-    with open(DETAILED_FILE, "w") as f:
+    with open(DETAILED_FILE, "w", encoding="utf-8") as f:
         json.dump(detailed, f, indent=2)
 
-    log(f"✅ DONE — recovered {(len(venues) - len(empty_venues))}/{len(venues)} venues")
+    log(f"✅ DONE — recovered {(len(venue_codes) - len(empty_venues))}/{len(venue_codes)} venues")
