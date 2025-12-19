@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 
 import cloudscraper
 
-# -------- Selenium fallback (kept, but not aggressive) --------
+# -------- Selenium --------
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -19,10 +19,13 @@ from webdriver_manager.chrome import ChromeDriverManager
 # =====================================================
 # CONFIG
 # =====================================================
-NUM_WORKERS = 1              # slow = safer
-MAX_ERRORS = 30
+NUM_WORKERS = 1                  # do NOT increase
 SHARD_ID = 1
 DUMP_EVERY = 25
+
+API_TIMEOUT = 12
+RETRY_SLEEP = (0.8, 1.5)
+SELENIUM_SLEEP = (2.0, 3.5)
 
 IST = timezone(timedelta(hours=5, minutes=30))
 DATE_CODE = (datetime.now(IST) + timedelta(days=1)).strftime("%Y%m%d")
@@ -38,9 +41,7 @@ thread_local = threading.local()
 
 all_data = {}
 empty_venues = set()
-
 fetch_count = 0
-error_count = 0
 
 # =====================================================
 # HEADERS
@@ -66,7 +67,7 @@ def headers():
     }
 
 # =====================================================
-# SCRAPER
+# SCRAPERS
 # =====================================================
 def get_scraper():
     if hasattr(thread_local, "scraper"):
@@ -88,27 +89,52 @@ def reset_identity():
         del thread_local.driver
 
 def fetch_cloud(url):
-    r = get_scraper().get(url, headers=headers(), timeout=15)
+    r = get_scraper().get(url, headers=headers(), timeout=API_TIMEOUT)
     if not r.text.strip().startswith("{"):
         raise ValueError("HTML response")
     return r.json()
 
-def hybrid_fetch(url):
-    return fetch_cloud(url)
+# ---------------- Selenium API call ----------------
+def get_driver():
+    if hasattr(thread_local, "driver"):
+        return thread_local.driver
 
-# =====================================================
-# FETCH ONE VENUE (CORRECT DATE LOGIC)
-# =====================================================
-def fetch_venue(venue_code):
-    url = (
+    o = Options()
+    o.add_argument("--headless=new")
+    o.add_argument("--no-sandbox")
+    o.add_argument("--disable-dev-shm-usage")
+    o.add_argument(f"--user-agent={random.choice(USER_AGENTS)}")
+
+    d = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=o,
+    )
+    thread_local.driver = d
+    return d
+
+def fetch_via_selenium_api(venue_code):
+    """
+    Calls the SAME API but inside a real browser session.
+    This bypasses BMS poisoning.
+    """
+    api_url = (
         "https://in.bookmyshow.com/api/v2/mobile/showtimes/byvenue"
         f"?venueCode={venue_code}&dateCode={DATE_CODE}"
     )
+    d = get_driver()
+    d.set_page_load_timeout(30)
+    d.get(api_url)
+    body = d.page_source.strip()
+    if not body.startswith("{"):
+        return {}
+    return json.loads(body)
 
-    data = hybrid_fetch(url)
+# =====================================================
+# PARSE RESPONSE (COMMON)
+# =====================================================
+def parse_payload(data, venue_code):
     sd = data.get("ShowDetails", [])
     if not sd:
-        print(f"⚠️ [EMPTY] {venue_code} | no ShowDetails")
         return {}
 
     venue_info = sd[0].get("Venues", {})
@@ -117,7 +143,7 @@ def fetch_venue(venue_code):
     chain      = venue_info.get("VenueCompName", "Unknown")
 
     out = defaultdict(list)
-    valid_shows = 0
+    valid = 0
 
     for ev in sd[0].get("Event", []):
         title = ev.get("EventTitle", "Unknown")
@@ -143,7 +169,7 @@ def fetch_venue(venue_code):
                     sold  += seats - free
                     gross += (seats - free) * price
 
-                valid_shows += 1
+                valid += 1
                 out[movie].append({
                     "venue": venue_name,
                     "address": venue_add,
@@ -157,12 +183,23 @@ def fetch_venue(venue_code):
                     "gross": round(gross, 2),
                 })
 
-    if valid_shows:
-        print(f"✅ [FETCHED] {venue_code} | shows={valid_shows}")
+    if valid:
+        print(f"✅ [FETCHED] {venue_code} | shows={valid}")
     else:
-        print(f"⚠️ [EMPTY] {venue_code} | no shows for DATE={DATE_CODE}")
+        print(f"⚠️ [EMPTY] {venue_code}")
 
     return out
+
+# =====================================================
+# FETCH METHODS
+# =====================================================
+def fetch_api(venue_code):
+    url = (
+        "https://in.bookmyshow.com/api/v2/mobile/showtimes/byvenue"
+        f"?venueCode={venue_code}&dateCode={DATE_CODE}"
+    )
+    data = fetch_cloud(url)
+    return parse_payload(data, venue_code)
 
 # =====================================================
 # AGGREGATION
@@ -236,65 +273,64 @@ def aggregate(all_data, venues_meta):
 
     return final, detailed
 
-# =====================================================
-# MEMORY DUMP
-# =====================================================
 def dump_memory(venues):
     summary, detailed = aggregate(all_data, venues)
     with open(SUMMARY_FILE, "w") as f:
         json.dump(summary, f, indent=2)
     with open(DETAILED_FILE, "w") as f:
         json.dump(detailed, f, indent=2)
-    print(f"💾 Memory dump done at {fetch_count} venues")
-
-# =====================================================
-# FETCH WRAPPER
-# =====================================================
-def fetch_safe(vcode, venues):
-    global fetch_count, error_count
-    try:
-        data = fetch_venue(vcode)
-        with lock:
-            all_data[vcode] = data
-            if not data:
-                empty_venues.add(vcode)
-            fetch_count += 1
-            if fetch_count % DUMP_EVERY == 0:
-                dump_memory(venues)
-    except Exception as e:
-        with lock:
-            error_count += 1
-            print(f"❌ [FAILED] {vcode}: {e}")
-            if error_count >= MAX_ERRORS:
-                dump_memory(venues)
-                sys.exit(1)
 
 # =====================================================
 # MAIN
 # =====================================================
 if __name__ == "__main__":
-    with open("venues1.json", "r") as f:
+    with open("venues1.json") as f:
         venues = json.load(f)
 
-    print("🚀 FIRST PASS STARTED")
+    print("🚀 PASS 1 — API")
 
-    with ThreadPoolExecutor(NUM_WORKERS) as exe:
-        futures = [exe.submit(fetch_safe, v, venues) for v in venues.keys()]
-        for _ in as_completed(futures):
-            pass
+    for vcode in venues.keys():
+        try:
+            data = fetch_api(vcode)
+            all_data[vcode] = data
+            if not data:
+                empty_venues.add(vcode)
+        except Exception:
+            empty_venues.add(vcode)
 
-    print(f"\n🔁 SECOND PASS — retrying {len(empty_venues)} empty venues\n")
+    print(f"\n🔁 PASS 2 — API retry ({len(empty_venues)})\n")
 
     for vcode in list(empty_venues):
-        time.sleep(random.uniform(1.5, 3.0))
+        time.sleep(random.uniform(*RETRY_SLEEP))
         reset_identity()
-        data = fetch_venue(vcode)
-        if data:
-            all_data[vcode] = data
-            empty_venues.remove(vcode)
-            print(f"✅ [RECOVERED] {vcode}")
-        else:
-            print(f"⚠️ [STILL EMPTY] {vcode}")
+        try:
+            data = fetch_api(vcode)
+            if data:
+                all_data[vcode] = data
+                empty_venues.remove(vcode)
+        except Exception:
+            pass
+
+    print(f"\n🧠 PASS 3 — SELENIUM VERIFY ({len(empty_venues)})\n")
+
+    for idx, vcode in enumerate(list(empty_venues), start=1):
+        print(f"[SEL {idx}/{len(empty_venues)}] {vcode}")
+        time.sleep(random.uniform(*SELENIUM_SLEEP))
+        reset_identity()
+        try:
+            data = fetch_via_selenium_api(vcode)
+            parsed = parse_payload(data, vcode)
+            if parsed:
+                all_data[vcode] = parsed
+                empty_venues.remove(vcode)
+                print(f"✅ [RECOVERED via Selenium] {vcode}")
+        except Exception:
+            pass
 
     dump_memory(venues)
-    print("✅ DONE — bms1.py complete")
+
+    print("\n🎯 FINAL STATUS")
+    print(f"Total venues   : {len(venues)}")
+    print(f"Recovered data : {len(all_data) - len(empty_venues)}")
+    print(f"Still empty    : {len(empty_venues)}")
+    print("✅ DONE — 100% RECOVERY MODE COMPLETE")
