@@ -2,7 +2,6 @@ import json
 import os
 import asyncio
 import aiohttp
-from collections import defaultdict
 from datetime import datetime, timedelta
 import pytz
 
@@ -15,6 +14,7 @@ TIMEOUT = aiohttp.ClientTimeout(total=25)
 
 IST = pytz.timezone("Asia/Kolkata")
 NOW_IST = datetime.now(IST)
+
 DATE_CODE = (NOW_IST + timedelta(days=1)).strftime("%Y%m%d")
 DATE_DISTRICT = (NOW_IST + timedelta(days=1)).strftime("%Y-%m-%d")
 
@@ -24,7 +24,7 @@ os.makedirs(LOG_DIR, exist_ok=True)
 
 DETAILED_FILE = f"{BASE_DIR}/detailed{SHARD_ID}.json"
 SUMMARY_FILE  = f"{BASE_DIR}/movie_summary{SHARD_ID}.json"
-LOG_FILE      = f"{LOG_DIR}/districtbms{SHARD_ID}.log"
+LOG_FILE      = f"{LOG_DIR}/district{SHARD_ID}.log"
 
 API_URL = "https://districtvenues.text2027mail.workers.dev/?cinema_id={cid}&date={date}"
 
@@ -67,7 +67,7 @@ def dedupe(rows):
         key = (
             r.get("venue", ""),
             r.get("time", ""),
-            str(r.get("session_id", "")),
+            r.get("session_id", ""),
             r.get("audi", ""),
         )
         if key in seen:
@@ -93,7 +93,7 @@ async def fetch_one(session, venue):
             data = await resp.json()
             session_dates = data.get("data", {}).get("sessionDates", [])
 
-            # ---- VENUE LEVEL DATE SKIP ----
+            # ---- DATE SKIP ----
             if DATE_DISTRICT not in session_dates:
                 return None
 
@@ -104,7 +104,7 @@ async def fetch_one(session, venue):
         return None
 
 # =====================================================
-# MAIN ASYNC FETCH
+# FETCH ALL (ASYNC)
 # =====================================================
 async def fetch_all():
     sem = asyncio.Semaphore(CONCURRENCY)
@@ -112,11 +112,11 @@ async def fetch_all():
 
     async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
 
-        async def bound_fetch(v):
+        async def bound(v):
             async with sem:
                 return await fetch_one(session, v)
 
-        tasks = [bound_fetch(v) for v in DIST_VENUES]
+        tasks = [bound(v) for v in DIST_VENUES]
         raw = await asyncio.gather(*tasks)
 
     for r in raw:
@@ -131,19 +131,34 @@ async def fetch_all():
 # =====================================================
 def parse(results):
     detailed = []
-    summary = {}
 
     for res in results:
         venue_meta = res["venue"]
         data = res["data"]
 
-        city = venue_meta.get("city", "Unknown")
+        city = venue_meta.get("city") or "Unknown"
         state = format_state(venue_meta.get("state"))
-        chain = format_chain(venue_meta.get("chainKey"))
 
         cinema = data.get("meta", {}).get("cinema", {})
-        venue_name = cinema.get("name", "")
-        venue_addr = cinema.get("address", "")
+
+        venue_name = (
+            cinema.get("name")
+            or venue_meta.get("name")
+            or venue_meta.get("district_name")
+            or "Unknown"
+        )
+
+        venue_addr = (
+            cinema.get("address")
+            or venue_meta.get("address")
+            or ""
+        )
+
+        chain = format_chain(
+            venue_meta.get("chainKey")
+            or venue_meta.get("chain")
+            or venue_name
+        )
 
         movies = data.get("meta", {}).get("movies", []) or []
         movie_map = {}
@@ -170,13 +185,14 @@ def parse(results):
             total = int(s.get("total", 0))
             avail = int(s.get("avail", 0))
             sold = total - avail
+
             gross = sum(
                 (a.get("sTotal", 0) - a.get("sAvail", 0)) * a.get("price", 0)
                 for a in s.get("areas", []) or []
             )
+
             occ = (sold / total * 100) if total else 0
 
-            # ---------------- DETAILED ----------------
             detailed.append({
                 "movie": movie_key,
                 "city": city,
@@ -202,11 +218,10 @@ def parse(results):
                 "chain": chain
             })
 
-    detailed = dedupe(detailed)
-    return detailed
+    return dedupe(detailed)
 
 # =====================================================
-# BUILD SUMMARY (AFTER DEDUPE)
+# BUILD SUMMARY
 # =====================================================
 def build_summary(detailed):
     summary = {}
@@ -245,17 +260,23 @@ def build_summary(detailed):
         m["venues"].add(venue)
         m["cities"].add(city)
 
-        if occ >= 98: m["housefull"] += 1
-        elif occ >= 50: m["fastfilling"] += 1
+        if occ >= 98:
+            m["housefull"] += 1
+        elif occ >= 50:
+            m["fastfilling"] += 1
 
         ck = (city, state)
         if ck not in m["details"]:
             m["details"][ck] = {
-                "city": city, "state": state,
-                "venues": set(), "shows": 0,
-                "gross": 0.0, "sold": 0,
+                "city": city,
+                "state": state,
+                "venues": set(),
+                "shows": 0,
+                "gross": 0.0,
+                "sold": 0,
                 "totalSeats": 0,
-                "fastfilling": 0, "housefull": 0
+                "fastfilling": 0,
+                "housefull": 0
             }
 
         d = m["details"][ck]
@@ -264,16 +285,21 @@ def build_summary(detailed):
         d["gross"] += gross
         d["sold"] += sold
         d["totalSeats"] += total
-        if occ >= 98: d["housefull"] += 1
-        elif occ >= 50: d["fastfilling"] += 1
+        if occ >= 98:
+            d["housefull"] += 1
+        elif occ >= 50:
+            d["fastfilling"] += 1
 
         if chain not in m["Chain_details"]:
             m["Chain_details"][chain] = {
                 "chain": chain,
-                "venues": set(), "shows": 0,
-                "gross": 0.0, "sold": 0,
+                "venues": set(),
+                "shows": 0,
+                "gross": 0.0,
+                "sold": 0,
                 "totalSeats": 0,
-                "fastfilling": 0, "housefull": 0
+                "fastfilling": 0,
+                "housefull": 0
             }
 
         c = m["Chain_details"][chain]
@@ -282,8 +308,10 @@ def build_summary(detailed):
         c["gross"] += gross
         c["sold"] += sold
         c["totalSeats"] += total
-        if occ >= 98: c["housefull"] += 1
-        elif occ >= 50: c["fastfilling"] += 1
+        if occ >= 98:
+            c["housefull"] += 1
+        elif occ >= 50:
+            c["fastfilling"] += 1
 
     final = {}
     for movie, m in summary.items():
@@ -334,7 +362,7 @@ def build_summary(detailed):
 # ENTRY
 # =====================================================
 async def main():
-    log("🚀 DISTRICT SCRIPT STARTED")
+    log("🚀 DISTRICT SCRAPER STARTED")
     results = await fetch_all()
     detailed = parse(results)
     summary = build_summary(detailed)
