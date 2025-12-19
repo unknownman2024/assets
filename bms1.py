@@ -3,6 +3,7 @@ import os
 import random
 import time
 import threading
+import signal
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
@@ -13,6 +14,7 @@ import cloudscraper
 # =====================================================
 SHARD_ID = 1
 API_TIMEOUT = 12
+HARD_TIMEOUT = 15
 MAX_RECOVERY_ROUNDS = 10
 
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -35,6 +37,27 @@ def log(msg):
     print(line, flush=True)
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(line + "\n")
+
+# =====================================================
+# HARD TIMEOUT (ANTI-FREEZE)
+# =====================================================
+class TimeoutError(Exception):
+    pass
+
+def _timeout_handler(signum, frame):
+    raise TimeoutError("Hard timeout hit")
+
+def hard_timeout(seconds):
+    def deco(fn):
+        def wrapper(*args, **kwargs):
+            signal.signal(signal.SIGALRM, _timeout_handler)
+            signal.alarm(seconds)
+            try:
+                return fn(*args, **kwargs)
+            finally:
+                signal.alarm(0)
+        return wrapper
+    return deco
 
 # =====================================================
 # STATE
@@ -88,8 +111,9 @@ def reset_identity():
     log("🔄 Browser identity reset")
 
 # =====================================================
-# API FETCH
+# API FETCH (FREEZE-PROOF)
 # =====================================================
+@hard_timeout(HARD_TIMEOUT)
 def fetch_api_raw(venue_code):
     ident = get_identity()
     url = (
@@ -110,11 +134,16 @@ def fetch_api_raw(venue_code):
     return r.json()
 
 # =====================================================
-# PARSER
+# PARSER (WITH DATE-MISMATCH SKIP)
 # =====================================================
-def parse_payload(data):
+def parse_payload(data, venue_code):
     sd = data.get("ShowDetails", [])
     if not sd:
+        return {}
+
+    api_date = sd[0].get("Date")
+    if api_date and str(api_date) != str(DATE_CODE):
+        log(f"⏩ DATE MISMATCH {venue_code} | API:{api_date} EXPECTED:{DATE_CODE}")
         return {}
 
     venue_info = sd[0].get("Venues", {})
@@ -173,14 +202,15 @@ if __name__ == "__main__":
     venue_codes = list(venues.keys())
     log(f"🎯 Venues loaded: {len(venue_codes)}")
 
-    # ---------------- PASS 1 ----------------
-    log("▶ PASS-1 : Primary API fetch")
+    # ---------------- PASS-1 ----------------
+    log("▶ PASS-1 : Primary fetch")
     random.shuffle(venue_codes)
 
-    for i, vcode in enumerate(venue_codes, start=1):
+    for i, vcode in enumerate(venue_codes, 1):
         log(f"[P1 {i}/{len(venue_codes)}] {vcode}")
         try:
-            data = parse_payload(fetch_api_raw(vcode))
+            raw = fetch_api_raw(vcode)
+            data = parse_payload(raw, vcode)
             if data:
                 all_data[vcode] = data
                 log(f"✅ FETCHED {vcode}")
@@ -189,52 +219,53 @@ if __name__ == "__main__":
                 log(f"⚠️ EMPTY {vcode}")
         except Exception as e:
             empty_venues.add(vcode)
-            log(f"❌ ERROR {vcode} | {e}")
+            log(f"❌ ERROR {vcode} | {type(e).__name__}")
+            reset_identity()
 
-        time.sleep(random.uniform(0.25, 0.55))
+        time.sleep(random.uniform(0.35, 0.75))
 
-    # ---------------- PASS 2 ----------------
-    reset_identity()
+    # ---------------- PASS-2 ----------------
     log(f"▶ PASS-2 : Soft retry ({len(empty_venues)})")
 
     for vcode in list(empty_venues):
         try:
-            data = parse_payload(fetch_api_raw(vcode))
+            raw = fetch_api_raw(vcode)
+            data = parse_payload(raw, vcode)
             if data:
                 all_data[vcode] = data
                 empty_venues.remove(vcode)
                 log(f"♻️ RECOVERED {vcode}")
         except Exception:
-            time.sleep(random.uniform(0.6, 1.0))
+            time.sleep(random.uniform(0.8, 1.2))
 
-    # ---------------- RECOVERY LOOPS ----------------
+    # ---------------- RECOVERY ----------------
     for round_no in range(1, MAX_RECOVERY_ROUNDS + 1):
         if not empty_venues:
             break
 
-        log(f"🔁 RECOVERY ROUND {round_no} ({len(empty_venues)} venues)")
+        log(f"🔁 RECOVERY ROUND {round_no} ({len(empty_venues)})")
         reset_identity()
 
-        retry_list = list(empty_venues)
-        random.shuffle(retry_list)
+        retry = list(empty_venues)
+        random.shuffle(retry)
+        time.sleep(min(2 + round_no * 0.8, 6))
 
-        sleep_base = min(2 + round_no * 0.8, 6)
-        time.sleep(random.uniform(sleep_base, sleep_base + 1.5))
-
-        for vcode in retry_list:
+        for vcode in retry:
+            log(f"🔎 RETRY {vcode}")
             try:
-                data = parse_payload(fetch_api_raw(vcode))
+                raw = fetch_api_raw(vcode)
+                data = parse_payload(raw, vcode)
                 if data:
                     all_data[vcode] = data
                     empty_venues.remove(vcode)
                     log(f"🛠️ RECOVERED {vcode}")
-                else:
-                    time.sleep(random.uniform(0.4, 0.7))
-            except Exception:
-                time.sleep(random.uniform(0.8, 1.4))
+            except Exception as e:
+                log(f"⏰ FAIL {vcode} | {type(e).__name__}")
+                reset_identity()
+                time.sleep(random.uniform(1.2, 2.0))
 
     # ---------------- SAVE ----------------
-    log("💾 Writing output files")
+    log("💾 Writing output")
 
     summary = {}
     detailed = []
@@ -242,14 +273,9 @@ if __name__ == "__main__":
     for vcode, movies in all_data.items():
         for movie, shows in movies.items():
             m = summary.setdefault(movie, {
-                "shows": 0,
-                "gross": 0,
-                "sold": 0,
-                "totalSeats": 0,
-                "venues": set()
+                "shows": 0, "gross": 0, "sold": 0, "totalSeats": 0, "venues": set()
             })
             m["venues"].add(vcode)
-
             for s in shows:
                 m["shows"] += 1
                 m["gross"] += s["gross"]
@@ -282,4 +308,4 @@ if __name__ == "__main__":
     with open(DETAILED_FILE, "w", encoding="utf-8") as f:
         json.dump(detailed, f, indent=2)
 
-    log(f"✅ DONE — recovered {(len(venue_codes) - len(empty_venues))}/{len(venue_codes)} venues")
+    log(f"✅ DONE — recovered {len(all_data)}/{len(venue_codes)} venues")
