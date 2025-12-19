@@ -26,7 +26,7 @@ DETAILED_FILE = f"{BASE_DIR}/detailed{SHARD_ID}.json"
 SUMMARY_FILE  = f"{BASE_DIR}/movie_summary{SHARD_ID}.json"
 LOG_FILE      = f"{LOG_DIR}/district{SHARD_ID}.log"
 
-API_URL = "https://districtvenues.text2027mail.workers.dev/?cinema_id={cid}&date={date}"
+API_URL = "https://districtvenues.text2029mail.workers.dev/?cinema_id={cid}&date={date}"
 
 # =====================================================
 # LOGGING
