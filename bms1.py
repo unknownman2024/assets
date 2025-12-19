@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 import cloudscraper
 
-# -------- Selenium (lazy, only PASS-3) --------
+# -------- Selenium --------
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -74,7 +74,6 @@ def headers():
 def get_scraper():
     if hasattr(thread_local, "scraper"):
         return thread_local.scraper
-
     log("🧠 Creating cloudscraper session")
     s = cloudscraper.create_scraper(
         browser={"browser": "chrome", "platform": "windows", "desktop": True}
@@ -93,9 +92,6 @@ def reset_identity():
         del thread_local.driver
     log("🔄 Identity reset")
 
-# =====================================================
-# API FETCH
-# =====================================================
 def fetch_api_raw(venue_code):
     url = (
         "https://in.bookmyshow.com/api/v2/mobile/showtimes/byvenue"
@@ -123,7 +119,6 @@ def parse_payload(data, venue_code):
 
     for ev in sd[0].get("Event", []):
         title = ev.get("EventTitle", "Unknown")
-
         for ch in ev.get("ChildEvents", []):
             dim  = ch.get("EventDimension", "").strip()
             lang = ch.get("EventLanguage", "").strip()
@@ -161,13 +156,13 @@ def parse_payload(data, venue_code):
     return out if shows else {}
 
 # =====================================================
-# SELENIUM (PASS-3 ONLY)
+# SELENIUM (LOGGED)
 # =====================================================
 def get_driver():
     if hasattr(thread_local, "driver"):
         return thread_local.driver
 
-    log("🌐 Starting Selenium browser")
+    log("🌐 [SEL] Starting browser")
     o = Options()
     o.add_argument("--headless=new")
     o.add_argument("--no-sandbox")
@@ -186,12 +181,23 @@ def fetch_via_selenium(venue_code):
         "https://in.bookmyshow.com/api/v2/mobile/showtimes/byvenue"
         f"?venueCode={venue_code}&dateCode={DATE_CODE}"
     )
+    log(f"🌐 [SEL] Hitting API for {venue_code}")
     d = get_driver()
     d.get(api_url)
-    body = d.page_source.strip()
+
+    body = d.page_source
+    log(f"📄 [SEL] page_source length={len(body)} for {venue_code}")
+
+    body = body.strip()
     if not body.startswith("{"):
+        log(f"⚠️ [SEL] Non-JSON response for {venue_code}")
         return {}
-    return json.loads(body)
+
+    try:
+        return json.loads(body)
+    except Exception as e:
+        log(f"❌ [SEL] JSON decode failed for {venue_code} | {e}")
+        return {}
 
 # =====================================================
 # MAIN
@@ -204,58 +210,64 @@ if __name__ == "__main__":
 
     log(f"🎯 Venues loaded: {len(venues)}")
 
-    # ---------------- PASS 1 ----------------
-    log("▶ PASS-1 : API fetch")
-    for i, vcode in enumerate(venues.keys(), start=1):
-        log(f"[P1 {i}/{len(venues)}] {vcode}")
+    # ---------- PHASE 1 ----------
+    log("▶ PHASE-1 : API fetch")
+    for vcode in venues.keys():
         try:
             raw = fetch_api_raw(vcode)
-            log(f"🌐 API response received for {vcode}")
             data = parse_payload(raw, vcode)
             if data:
                 all_data[vcode] = data
-                log(f"✅ FETCHED {vcode}")
             else:
                 empty_venues.add(vcode)
-                log(f"⚠️ EMPTY {vcode}")
         except Exception as e:
             empty_venues.add(vcode)
-            log(f"❌ ERROR {vcode} | {e}")
+            log(f"❌ P1 error {vcode} | {e}")
 
-    # ---------------- PASS 2 ----------------
-    log("🔄 Reset identity ONCE before PASS-2")
+    # ---------- PHASE 2 ----------
+    log(f"▶ PHASE-2 : API retry ({len(empty_venues)})")
     reset_identity()
 
-    log(f"▶ PASS-2 : API retry ({len(empty_venues)})")
-    for i, vcode in enumerate(list(empty_venues), start=1):
-        log(f"[P2 {i}/{len(empty_venues)}] {vcode}")
+    for vcode in list(empty_venues):
         try:
             raw = fetch_api_raw(vcode)
-            log(f"🌐 API response received for {vcode}")
             data = parse_payload(raw, vcode)
             if data:
                 all_data[vcode] = data
                 empty_venues.remove(vcode)
-                log(f"♻️ RECOVERED {vcode}")
-        except Exception as e:
-            log(f"❌ PASS-2 ERROR {vcode} | {e}")
+        except Exception:
+            pass
 
-    # ---------------- PASS 3 ----------------
-    log(f"▶ PASS-3 : Selenium verify ({len(empty_venues)})")
-    for i, vcode in enumerate(list(empty_venues), start=1):
-        log(f"[P3 {i}/{len(empty_venues)}] {vcode}")
+    # ---------- PHASE 3 ----------
+    log(f"▶ PHASE-3 : Selenium verify ({len(empty_venues)})")
+    for vcode in list(empty_venues):
         try:
             raw = fetch_via_selenium(vcode)
             data = parse_payload(raw, vcode)
             if data:
                 all_data[vcode] = data
                 empty_venues.remove(vcode)
-                log(f"🧠 SELENIUM RECOVERED {vcode}")
-        except Exception as e:
-            log(f"❌ SEL ERROR {vcode} | {e}")
+        except Exception:
+            pass
 
-    # ---------------- SAVE ----------------
-    log("💾 Writing output files")
+    # ---------- PHASE 4 ----------
+    log(f"▶ PHASE-4 : Final Cloudscraper retry ({len(empty_venues)})")
+    reset_identity()
+
+    for vcode in list(empty_venues):
+        time.sleep(random.uniform(1.0, 2.0))
+        try:
+            raw = fetch_api_raw(vcode)
+            data = parse_payload(raw, vcode)
+            if data:
+                all_data[vcode] = data
+                empty_venues.remove(vcode)
+                log(f"♻️ P4 RECOVERED {vcode}")
+        except Exception:
+            pass
+
+    # ---------- SAVE ----------
+    log("💾 Writing output")
 
     summary = {}
     detailed = []
@@ -298,4 +310,4 @@ if __name__ == "__main__":
     with open(DETAILED_FILE, "w") as f:
         json.dump(detailed, f, indent=2)
 
-    log("✅ DONE — SCRIPT FINISHED CLEANLY")
+    log(f"✅ DONE | recovered={len(all_data)} | still_empty={len(empty_venues)}")
