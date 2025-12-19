@@ -2,6 +2,9 @@ name: BMS Shards 1–9 + Combine (Matrix)
 
 on:
   workflow_dispatch:
+  schedule:
+    # Every hour at HH:10 (UTC)
+    - cron: "10 * * * *"
 
 permissions:
   contents: write
