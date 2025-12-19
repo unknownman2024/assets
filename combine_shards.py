@@ -36,6 +36,41 @@ def save_json(path, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 # =====================================================
+# NORMALIZE ROW (🔥 KEY FIX)
+# =====================================================
+def normalize_row(r):
+    r["movie"] = r.get("movie") or "Unknown"
+    r["city"] = r.get("city") or "Unknown"
+    r["state"] = r.get("state") or "Unknown"
+    r["venue"] = r.get("venue") or "Unknown"
+    r["address"] = r.get("address") or ""
+    r["time"] = r.get("time") or ""
+    r["audi"] = r.get("audi") or ""
+    r["session_id"] = str(r.get("session_id") or "")
+    r["chain"] = r.get("chain") or "Unknown"
+    r["source"] = r.get("source") or "Unknown"
+    r["date"] = r.get("date") or DATE_CODE
+
+    r["totalSeats"] = int(r.get("totalSeats") or 0)
+    r["available"] = int(r.get("available") or 0)
+    r["sold"] = int(r.get("sold") or 0)
+    r["gross"] = float(r.get("gross") or 0.0)
+
+    occ = r.get("occupancy", "")
+    if isinstance(occ, (int, float)):
+        r["occupancy"] = f"{round(float(occ), 2)}%"
+    elif isinstance(occ, str):
+        if not occ.endswith("%"):
+            try:
+                r["occupancy"] = f"{round(float(occ), 2)}%"
+            except:
+                r["occupancy"] = "0%"
+    else:
+        r["occupancy"] = "0%"
+
+    return r
+
+# =====================================================
 # DEDUPE
 # =====================================================
 def dedupe(rows):
@@ -45,25 +80,15 @@ def dedupe(rows):
 
     for r in rows:
         key = (
-            r.get("venue", "").strip(),
-            r.get("time", "").strip(),
-            str(r.get("session_id", "")).strip(),
-            r.get("audi", "").strip(),
+            r.get("venue", ""),
+            r.get("time", ""),
+            r.get("session_id", ""),
+            r.get("audi", ""),
         )
         if key in seen:
             dupes += 1
             continue
         seen.add(key)
-
-        occ = r.get("occupancy", "")
-        if isinstance(occ, (int, float)):
-            r["occupancy"] = f"{round(float(occ), 2)}%"
-        elif isinstance(occ, str) and not occ.endswith("%"):
-            try:
-                r["occupancy"] = f"{round(float(occ), 2)}%"
-            except:
-                r["occupancy"] = "0%"
-
         out.append(r)
 
     return out, dupes
@@ -77,10 +102,15 @@ for i in range(1, 9):
     path = os.path.join(BASE_DIR, f"detailed{i}.json")
     data = load_json(path)
     if data:
-        all_rows.extend(data)
         print(f"✅ detailed{i}.json → {len(data)} rows")
+        all_rows.extend(data)
 
 print(f"📊 Raw rows: {len(all_rows)}")
+
+# =====================================================
+# NORMALIZE ALL ROWS (🔥 IMPORTANT)
+# =====================================================
+all_rows = [normalize_row(r) for r in all_rows]
 
 # =====================================================
 # DEDUPE FINAL
@@ -94,15 +124,15 @@ print(f"🎯 Final detailed rows: {len(final_rows)}")
 # =====================================================
 final_rows.sort(
     key=lambda x: (
-        x.get("movie", ""),
-        x.get("city", ""),
-        x.get("venue", ""),
-        x.get("time", ""),
+        x["movie"],
+        x["city"],
+        x["venue"],
+        x["time"],
     )
 )
 
 # =====================================================
-# SAVE finaldetailed.json (WITH last_updated)
+# SAVE finaldetailed.json
 # =====================================================
 save_json(
     FINAL_DETAILED,
@@ -124,11 +154,11 @@ for r in final_rows:
     city = r["city"]
     state = r["state"]
     venue = r["venue"]
-    chain = r.get("chain", "Unknown")
+    chain = r["chain"]
 
-    total = int(r.get("totalSeats", 0))
-    sold = int(r.get("sold", 0))
-    gross = float(r.get("gross", 0))
+    total = r["totalSeats"]
+    sold = r["sold"]
+    gross = r["gross"]
     occ = (sold / total * 100) if total else 0
 
     if movie not in summary:
@@ -254,7 +284,7 @@ for movie, m in summary.items():
         })
 
 # =====================================================
-# SAVE finalsummary.json (WITH last_updated)
+# SAVE finalsummary.json
 # =====================================================
 save_json(
     FINAL_SUMMARY,
