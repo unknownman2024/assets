@@ -1,6 +1,67 @@
 {
-  "last_updated": "2025-12-21 02:47 IST",
+  "last_updated": "2025-12-21 03:49 IST",
   "movies": {
+    "Avatar: Fire and Ash [3D | English]": {
+      "shows": 2,
+      "gross": 56430.0,
+      "sold": 253,
+      "totalSeats": 903,
+      "venues": 2,
+      "cities": 2,
+      "fastfilling": 0,
+      "housefull": 0,
+      "occupancy": 28.02,
+      "details": [
+        {
+          "city": "Hosur",
+          "state": "Tamil Nadu",
+          "venues": 1,
+          "shows": 1,
+          "gross": 8510.0,
+          "sold": 37,
+          "totalSeats": 203,
+          "fastfilling": 0,
+          "housefull": 0,
+          "occupancy": 18.23
+        },
+        {
+          "city": "Trivandrum",
+          "state": "Kerala",
+          "venues": 1,
+          "shows": 1,
+          "gross": 47920.0,
+          "sold": 216,
+          "totalSeats": 700,
+          "fastfilling": 0,
+          "housefull": 0,
+          "occupancy": 30.86
+        }
+      ],
+      "Chain_details": [
+        {
+          "chain": "Grand Cinema",
+          "venues": 1,
+          "shows": 1,
+          "gross": 8510.0,
+          "sold": 37,
+          "totalSeats": 203,
+          "fastfilling": 0,
+          "housefull": 0,
+          "occupancy": 18.23
+        },
+        {
+          "chain": "ARIES PLEX PRIVATE LIMITED",
+          "venues": 1,
+          "shows": 1,
+          "gross": 47920.0,
+          "sold": 216,
+          "totalSeats": 700,
+          "fastfilling": 0,
+          "housefull": 0,
+          "occupancy": 30.86
+        }
+      ]
+    },
     "Avatar: Fire and Ash [3D | Hindi]": {
       "shows": 2,
       "gross": 33000.0,
@@ -51,28 +112,66 @@
         }
       ]
     },
+    "Avatar: Fire and Ash [3D | Tamil]": {
+      "shows": 1,
+      "gross": 7980.0,
+      "sold": 38,
+      "totalSeats": 350,
+      "venues": 1,
+      "cities": 1,
+      "fastfilling": 0,
+      "housefull": 0,
+      "occupancy": 10.86,
+      "details": [
+        {
+          "city": "Hosur",
+          "state": "Tamil Nadu",
+          "venues": 1,
+          "shows": 1,
+          "gross": 7980.0,
+          "sold": 38,
+          "totalSeats": 350,
+          "fastfilling": 0,
+          "housefull": 0,
+          "occupancy": 10.86
+        }
+      ],
+      "Chain_details": [
+        {
+          "chain": "Grand Cinema",
+          "venues": 1,
+          "shows": 1,
+          "gross": 7980.0,
+          "sold": 38,
+          "totalSeats": 350,
+          "fastfilling": 0,
+          "housefull": 0,
+          "occupancy": 10.86
+        }
+      ]
+    },
     "Avatar: Fire and Ash [IMAX 3D | English]": {
       "shows": 1,
-      "gross": 80640.0,
-      "sold": 152,
+      "gross": 90000.0,
+      "sold": 170,
       "totalSeats": 342,
       "venues": 1,
       "cities": 1,
       "fastfilling": 0,
       "housefull": 0,
-      "occupancy": 44.44,
+      "occupancy": 49.71,
       "details": [
         {
           "city": "Mumbai",
           "state": "Maharashtra",
           "venues": 1,
           "shows": 1,
-          "gross": 80640.0,
-          "sold": 152,
+          "gross": 90000.0,
+          "sold": 170,
           "totalSeats": 342,
           "fastfilling": 0,
           "housefull": 0,
-          "occupancy": 44.44
+          "occupancy": 49.71
         }
       ],
       "Chain_details": [
@@ -80,25 +179,25 @@
           "chain": "Miraj Cinemas",
           "venues": 1,
           "shows": 1,
-          "gross": 80640.0,
-          "sold": 152,
+          "gross": 90000.0,
+          "sold": 170,
           "totalSeats": 342,
           "fastfilling": 0,
           "housefull": 0,
-          "occupancy": 44.44
+          "occupancy": 49.71
         }
       ]
     },
     "Dhurandhar [2D | Hindi]": {
-      "shows": 42,
-      "gross": 523847.0,
-      "sold": 1678,
-      "totalSeats": 9873,
-      "venues": 25,
+      "shows": 45,
+      "gross": 548651.0,
+      "sold": 1741,
+      "totalSeats": 10512,
+      "venues": 26,
       "cities": 9,
       "fastfilling": 3,
       "housefull": 0,
-      "occupancy": 17.0,
+      "occupancy": 16.56,
       "details": [
         {
           "city": "Ahmedabad",
@@ -140,13 +239,13 @@
           "city": "Mumbai",
           "state": "Maharashtra",
           "venues": 7,
-          "shows": 20,
-          "gross": 247937.0,
-          "sold": 837,
-          "totalSeats": 4865,
+          "shows": 22,
+          "gross": 257991.0,
+          "sold": 877,
+          "totalSeats": 5455,
           "fastfilling": 1,
           "housefull": 0,
-          "occupancy": 17.2
+          "occupancy": 16.08
         },
         {
           "city": "Nagpur",
@@ -187,14 +286,14 @@
         {
           "city": "Pune",
           "state": "Maharashtra",
-          "venues": 5,
-          "shows": 8,
-          "gross": 117290.0,
-          "sold": 380,
-          "totalSeats": 2281,
+          "venues": 6,
+          "shows": 9,
+          "gross": 132040.0,
+          "sold": 403,
+          "totalSeats": 2330,
           "fastfilling": 1,
           "housefull": 0,
-          "occupancy": 16.66
+          "occupancy": 17.3
         },
         {
           "city": "Thane",
@@ -235,13 +334,13 @@
         {
           "chain": "MovieMax",
           "venues": 10,
-          "shows": 17,
-          "gross": 205390.0,
-          "sold": 743,
-          "totalSeats": 4605,
+          "shows": 19,
+          "gross": 218480.0,
+          "sold": 800,
+          "totalSeats": 5195,
           "fastfilling": 1,
           "housefull": 0,
-          "occupancy": 16.13
+          "occupancy": 15.4
         },
         {
           "chain": "Cinepolis",
@@ -258,12 +357,12 @@
           "chain": "Maxus Cinemas",
           "venues": 3,
           "shows": 11,
-          "gross": 115917.0,
-          "sold": 343,
+          "gross": 113631.0,
+          "sold": 329,
           "totalSeats": 2858,
           "fastfilling": 0,
           "housefull": 0,
-          "occupancy": 12.0
+          "occupancy": 11.51
         },
         {
           "chain": "Abhijit Realtors and Infraventures Private",
@@ -286,6 +385,17 @@
           "fastfilling": 0,
           "housefull": 0,
           "occupancy": 33.09
+        },
+        {
+          "chain": "INOX",
+          "venues": 1,
+          "shows": 1,
+          "gross": 14000.0,
+          "sold": 20,
+          "totalSeats": 49,
+          "fastfilling": 0,
+          "housefull": 0,
+          "occupancy": 40.82
         },
         {
           "chain": "Miraj Cinemas",
