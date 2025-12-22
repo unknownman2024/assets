@@ -1,17 +1,15 @@
-name: BMS Shards 1–9 + Combine (Matrix)
+name: BMS TmrwAdv 1–9 + Combine (Matrix)
 
 on:
   workflow_dispatch:
   schedule:
+    # Every hour at HH:10 (UTC)
     - cron: "0 21-23/2,1-17/2 * * *"
 
 permissions:
   contents: write
 
 jobs:
-# =====================================================
-# 1️⃣ SHARDS (GENERATE + PUSH)
-# =====================================================
   shards:
     name: Shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
@@ -20,53 +18,63 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1,2,3,4,5,6,7,8,9]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
     steps:
+      # ---------------- CHECKOUT ----------------
       - name: 🧾 Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: true
 
+      # ---------------- PYTHON ----------------
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: 🌐 Install Chrome
+      # ---------------- CHROME ----------------
+      - name: 🌐 Install Google Chrome
         run: |
           sudo apt-get update
           sudo apt-get install -y wget unzip
           wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+          rm -f google-chrome-stable_current_amd64.deb
+          google-chrome --version
 
-      - name: 📦 Install dependencies
+      # ---------------- DEPENDENCIES ----------------
+      - name: 📦 Install Python dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install selenium webdriver-manager cloudscraper aiohttp pytz
 
+      # ---------------- RUN SHARD ----------------
       - name: 🚀 Run shard scraper
         run: |
           python bms${{ matrix.shard }}.py
 
-      - name: 💾 Commit shard outputs
+      # ---------------- COMMIT & PUSH SHARD DATA ----------------
+      - name: 💾 Commit shard output
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          git add advance/data/
-          git commit -m "Shard ${{ matrix.shard }} output ($(date +'%Y-%m-%d %H:%M IST'))" || echo "Nothing to commit"
+          git status
+          git add advance/
+          git commit -m "Trmw Adv BMS shard ${{ matrix.shard }} ($(date +'%Y-%m-%d'))" || echo "Nothing to commit"
 
-          # rebase-safe retry push
+          # retry-safe push
           for i in 1 2 3; do
             git pull --rebase origin main || true
             git push origin main && break
+            echo "Retry push $i..."
             sleep 3
           done
 
-# =====================================================
-# 2️⃣ COMBINE (AFTER ALL SHARDS)
-# =====================================================
+          git push --force-with-lease origin main || true
+
   combine:
     name: Combine all shards
     needs: shards
@@ -74,32 +82,34 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      # ---------------- CHECKOUT ----------------
       - name: 🧾 Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: true
 
+      # ---------------- PYTHON ----------------
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # ---------------- COMBINE ----------------
       - name: 🔗 Combine shard JSONs
         run: |
           pip install pytz
           python combine_shards.py
 
+      # ---------------- COMMIT & PUSH FINAL FILES ----------------
       - name: 💾 Commit final combined JSONs
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          git add advance/data/
-          git commit -m "Final combined BMS data ($(date +'%Y-%m-%d %H:%M IST'))" || echo "Nothing to commit"
+          git status
+          git add advance/
+          git commit -m "Final combined BMS data ($(date +'%Y-%m-%d'))" || echo "Nothing to commit"
 
-          for i in 1 2 3; do
-            git pull --rebase origin main || true
-            git push origin main && break
-            sleep 3
-          done
+          git pull --rebase origin main || true
+          git push origin main || git push --force-with-lease origin main
