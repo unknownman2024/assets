@@ -10,8 +10,7 @@ from collections import defaultdict
 IST = pytz.timezone("Asia/Kolkata")
 NOW_IST = datetime.now(IST)
 
-DAYS_AHEAD = int(os.environ.get("DAYS_AHEAD"))
-DATE_CODE = (datetime.now(IST) + timedelta(days=DAYS_AHEAD)).strftime("%Y%m%d")
+DATE_CODE = os.environ["DATE_CODE"]
 LAST_UPDATED = NOW_IST.strftime("%Y-%m-%d %H:%M IST")
 
 BASE_DIR = f"advance/data/{DATE_CODE}"
