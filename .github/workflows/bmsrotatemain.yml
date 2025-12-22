@@ -1,18 +1,18 @@
-name: BMS Advance Tracker (Matrix + Parallel + Git Persist)
+name: BMS Advance Tracker (2,3,4,5)
 
 on:
   workflow_dispatch:
   schedule:
-    # IST window mapped in UTC
+    # IST window mapped in UTC (every 2 hours window)
     - cron: "0 21-23/2,1-17/2 * * *"
 
 permissions:
   contents: write
 
 jobs:
-  # =====================================================
-  # 1️⃣ Decide DATE OFFSET + FREEZE DATE_CODE
-  # =====================================================
+# =====================================================
+# 1️⃣ Decide DATE OFFSET + FREEZE DATE_CODE
+# =====================================================
   decide-day:
     runs-on: ubuntu-latest
     outputs:
@@ -44,9 +44,9 @@ jobs:
           echo "days_ahead=$DAYS_AHEAD" >> $GITHUB_OUTPUT
           echo "date_code=$DATE_CODE"   >> $GITHUB_OUTPUT
 
-  # =====================================================
-  # 2️⃣ Run ALL shards in parallel (1–9)
-  # =====================================================
+# =====================================================
+# 2️⃣ Run ALL shards in parallel (1–9)
+# =====================================================
   shards:
     name: Shard ${{ matrix.shard }}
     needs: decide-day
@@ -82,19 +82,17 @@ jobs:
           DAYS_AHEAD: ${{ needs.decide-day.outputs.days_ahead }}
           DATE_CODE:  ${{ needs.decide-day.outputs.date_code }}
 
-      - name: 💾 Commit shard output
+      - name: 💾 Commit shard output (REBASE SAFE)
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          git status
           git add advance/data/${{ needs.decide-day.outputs.date_code }}/
-
           git commit -m "Shard ${{ matrix.shard }} data (${{
             needs.decide-day.outputs.date_code
           }})" || echo "Nothing to commit"
 
-          # rebase-safe push (NO hard reset)
+          # 🔁 rebase-safe retry push
           for i in 1 2 3; do
             git pull --rebase origin main || true
             git push origin main && break
@@ -102,9 +100,9 @@ jobs:
             sleep 3
           done
 
-  # =====================================================
-  # 3️⃣ Combine shards (AFTER ALL SHARDS FINISH)
-  # =====================================================
+# =====================================================
+# 3️⃣ Combine shards (AFTER ALL SHARDS FINISH)
+# =====================================================
   combine:
     name: Combine all shards
     needs: [decide-day, shards]
@@ -133,13 +131,10 @@ jobs:
         env:
           DATE_CODE: ${{ needs.decide-day.outputs.date_code }}
 
-      - name: 💾 Commit final combined JSONs
+      - name: 💾 Commit final combined JSONs (REBASE SAFE)
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-
-          git status
-          git diff --stat
 
           git add advance/data/${{ needs.decide-day.outputs.date_code }}/finaldetailed.json
           git add advance/data/${{ needs.decide-day.outputs.date_code }}/finalsummary.json
@@ -148,4 +143,10 @@ jobs:
             needs.decide-day.outputs.date_code
           }})" || echo "Nothing to commit"
 
-          git push origin main
+          # 🔁 rebase-safe retry push (NO FORCE)
+          for i in 1 2 3; do
+            git pull --rebase origin main || true
+            git push origin main && break
+            echo "Retry push $i..."
+            sleep 3
+          done
