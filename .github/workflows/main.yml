@@ -1,9 +1,9 @@
-name: BMS TmrwAdv 1–9 + Combine (Matrix)
+name: BMS TmrwAdv 1–9 + Combine (Matrix | SAFE)
 
 on:
   workflow_dispatch:
   schedule:
-    # Every hour at HH:10 (UTC)
+    # IST window mapped to UTC
     - cron: "0 21-23/2,1-17/2 * * *"
 
 permissions:
@@ -18,15 +18,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        shard: [1,2,3,4,5,6,7,8,9]
 
     steps:
       # ---------------- CHECKOUT ----------------
       - name: 🧾 Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          persist-credentials: true
+          fetch-depth: 1
+          persist-credentials: false
 
       # ---------------- PYTHON ----------------
       - name: 🐍 Setup Python
@@ -52,31 +52,19 @@ jobs:
 
       # ---------------- RUN SHARD ----------------
       - name: 🚀 Run shard scraper
+        env:
+          SHARD_ID: ${{ matrix.shard }}
         run: |
           python bms${{ matrix.shard }}.py
 
-      # ---------------- COMMIT & PUSH SHARD DATA ----------------
-      - name: 💾 Commit shard output
+      # ---------------- VERIFY ----------------
+      - name: 🔍 Verify shard output
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-
-          git status
-          git add advance/
-          git commit -m "Trmw Adv BMS shard ${{ matrix.shard }} ($(date +'%Y-%m-%d'))" || echo "Nothing to commit"
-
-          # retry-safe push
-          for i in 1 2 3; do
-            git pull --rebase origin main || true
-            git push origin main && break
-            echo "Retry push $i..."
-            sleep 3
-          done
-
-          git push --force-with-lease origin main || true
+          echo "Shard ${{ matrix.shard }} finished"
+          ls -lh advance/ || true
 
   combine:
-    name: Combine all shards
+    name: Combine all shards (SINGLE WRITER)
     needs: shards
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -95,21 +83,26 @@ jobs:
         with:
           python-version: "3.11"
 
+      # ---------------- INSTALL ----------------
+      - name: 📦 Install deps
+        run: |
+          pip install pytz
+
       # ---------------- COMBINE ----------------
       - name: 🔗 Combine shard JSONs
         run: |
-          pip install pytz
           python combine_shards.py
 
-      # ---------------- COMMIT & PUSH FINAL FILES ----------------
-      - name: 💾 Commit final combined JSONs
+      # ---------------- COMMIT & PUSH ----------------
+      - name: 💾 Commit & push final data
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
           git status
           git add advance/
-          git commit -m "Final combined BMS data ($(date +'%Y-%m-%d'))" || echo "Nothing to commit"
 
-          git pull --rebase origin main || true
-          git push origin main || git push --force-with-lease origin main
+          git commit -m "Final combined BMS data ($(date +'%Y-%m-%d %H:%M IST'))" || echo "Nothing to commit"
+
+          git pull --rebase origin main
+          git push origin main
