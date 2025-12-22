@@ -1,4 +1,4 @@
-name: BMS DailyBO 1–9 + Combine (Parallel Safe No Artifacts)
+name: BMS DailyBO 1–9 + Combine
 
 on:
   workflow_dispatch:
@@ -102,11 +102,16 @@ jobs:
           python combine_dailyshards.py
 
       # ---------------- FINAL COMMIT ----------------
-      - name: 💾 Commit & push final combined data
+      - name: 💾 Commit & push final combined data (FORCE SAFE)
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
+          # Always sync exactly with origin/main
+          git fetch origin
+          git reset --hard origin/main
+
+          # Apply freshly combined output
           git add daily/
           git status
 
@@ -117,5 +122,5 @@ jobs:
 
           git commit -m "Final combined BMS data ($(date +'%Y-%m-%d %H:%M'))"
 
-          git pull --rebase origin main
-          git push origin main
+          # Final output is source of truth → force push
+          git push origin main --force
