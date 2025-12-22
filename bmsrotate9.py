@@ -16,7 +16,7 @@ IST = pytz.timezone("Asia/Kolkata")
 NOW_IST = datetime.now(IST)
 
 DATE_CODE = os.environ["DATE_CODE"]
-DATE_DISTRICT = (NOW_IST + timedelta(days=DAYS_AHEAD)).strftime("%Y-%m-%d")
+DATE_DISTRICT = datetime.strptime(DATE_CODE, "%Y%m%d").strftime("%Y-%m-%d")
 
 BASE_DIR = os.path.join("advance", "data", DATE_CODE)
 LOG_DIR = os.path.join(BASE_DIR, "logs")
