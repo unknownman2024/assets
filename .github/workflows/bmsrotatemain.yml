@@ -11,29 +11,38 @@ permissions:
 
 jobs:
   # =====================================================
-  # 1️⃣ Decide DATE OFFSET (rotation)
+  # 1️⃣ Decide DATE OFFSET + FREEZE DATE_CODE
   # =====================================================
   decide-day:
     runs-on: ubuntu-latest
     outputs:
       days_ahead: ${{ steps.set.outputs.days_ahead }}
+      date_code:  ${{ steps.set.outputs.date_code }}
 
     steps:
-      - name: Decide tracking day (rotation)
+      - name: Decide tracking day (FREEZE)
         id: set
         run: |
           RUN_INDEX=$(( ($(date -u +%H) / 2) ))
 
-          # rotation: 2,3,4,2,5,3,4
+          # rotation pattern
           ARR=(2 3 4 2 5 3 4)
           LEN=${#ARR[@]}
           IDX=$(( RUN_INDEX % LEN ))
           DAYS_AHEAD=${ARR[$IDX]}
 
+          if [ -z "$DAYS_AHEAD" ]; then
+            echo "❌ DAYS_AHEAD empty"; exit 1
+          fi
+
+          DATE_CODE=$(TZ=Asia/Kolkata date -d "+${DAYS_AHEAD} day" +%Y%m%d)
+
           echo "Run index  : $RUN_INDEX"
           echo "Day offset : +$DAYS_AHEAD"
+          echo "DATE_CODE  : $DATE_CODE"
 
           echo "days_ahead=$DAYS_AHEAD" >> $GITHUB_OUTPUT
+          echo "date_code=$DATE_CODE"   >> $GITHUB_OUTPUT
 
   # =====================================================
   # 2️⃣ Run ALL shards in parallel (1–9) + PUSH
@@ -74,6 +83,7 @@ jobs:
           python bmsrotate${{ matrix.shard }}.py
         env:
           DAYS_AHEAD: ${{ needs.decide-day.outputs.days_ahead }}
+          DATE_CODE:  ${{ needs.decide-day.outputs.date_code }}
 
       # ---------------- SAFE PUSH ----------------
       - name: 💾 Commit shard output
@@ -95,7 +105,7 @@ jobs:
   # =====================================================
   combine:
     name: Combine all shards
-    needs: shards
+    needs: [decide-day, shards]
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -122,7 +132,7 @@ jobs:
         run: |
           python combine_shards_rotate.py
         env:
-          DAYS_AHEAD: ${{ needs.decide-day.outputs.days_ahead }}
+          DATE_CODE:  ${{ needs.decide-day.outputs.date_code }}
 
       # ---------------- FINAL PUSH ----------------
       - name: 💾 Commit final combined JSONs
