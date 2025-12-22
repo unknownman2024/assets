@@ -3,8 +3,8 @@ name: BMS Advance Tracker (Matrix + Parallel)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */2 * * *"   # every 2 hours
-
+    - cron: "0 21-23/2,1-17/2 * * *"
+    
 jobs:
   # =====================================================
   # 1️⃣ Decide DATE OFFSET (rotation)
