@@ -368,15 +368,15 @@
     ]
   },
   "Anaconda [2D | Telugu]": {
-    "shows": 12,
-    "gross": 69780.0,
-    "sold": 488,
-    "totalSeats": 4036,
-    "venues": 4,
-    "cities": 4,
+    "shows": 16,
+    "gross": 78012.0,
+    "sold": 544,
+    "totalSeats": 4828,
+    "venues": 5,
+    "cities": 5,
     "fastfilling": 0,
     "housefull": 0,
-    "occupancy": 12.09,
+    "occupancy": 11.27,
     "details": [
       {
         "city": "Bapatla",
@@ -425,19 +425,31 @@
         "fastfilling": 0,
         "housefull": 0,
         "occupancy": 6.44
+      },
+      {
+        "city": "Guntur",
+        "state": "Andhra Pradesh",
+        "venues": 1,
+        "shows": 4,
+        "gross": 8232.0,
+        "sold": 56,
+        "totalSeats": 792,
+        "fastfilling": 0,
+        "housefull": 0,
+        "occupancy": 7.07
       }
     ],
     "Chain_details": [
       {
         "chain": "Vcelluloids",
-        "venues": 2,
-        "shows": 6,
-        "gross": 10200.0,
-        "sold": 68,
-        "totalSeats": 1828,
+        "venues": 3,
+        "shows": 10,
+        "gross": 18432.0,
+        "sold": 124,
+        "totalSeats": 2620,
         "fastfilling": 0,
         "housefull": 0,
-        "occupancy": 3.72
+        "occupancy": 4.73
       },
       {
         "chain": "V Mega",
@@ -464,15 +476,15 @@
     ]
   },
   "Dhandoraa [2D | Telugu]": {
-    "shows": 6,
-    "gross": 6600.0,
-    "sold": -20,
-    "totalSeats": 2548,
-    "venues": 2,
-    "cities": 2,
+    "shows": 10,
+    "gross": 32472.0,
+    "sold": 156,
+    "totalSeats": 4264,
+    "venues": 3,
+    "cities": 3,
     "fastfilling": 0,
     "housefull": 0,
-    "occupancy": -0.78,
+    "occupancy": 3.66,
     "details": [
       {
         "city": "Bapatla",
@@ -497,19 +509,31 @@
         "fastfilling": 0,
         "housefull": 0,
         "occupancy": -1.13
+      },
+      {
+        "city": "Guntur",
+        "state": "Andhra Pradesh",
+        "venues": 1,
+        "shows": 4,
+        "gross": 25872.0,
+        "sold": 176,
+        "totalSeats": 1716,
+        "fastfilling": 0,
+        "housefull": 0,
+        "occupancy": 10.26
       }
     ],
     "Chain_details": [
       {
         "chain": "Vcelluloids",
-        "venues": 2,
-        "shows": 6,
-        "gross": 6600.0,
-        "sold": -20,
-        "totalSeats": 2548,
+        "venues": 3,
+        "shows": 10,
+        "gross": 32472.0,
+        "sold": 156,
+        "totalSeats": 4264,
         "fastfilling": 0,
         "housefull": 0,
-        "occupancy": -0.78
+        "occupancy": 3.66
       }
     ]
   },
@@ -729,6 +753,44 @@
         "fastfilling": 0,
         "housefull": 0,
         "occupancy": 5.47
+      }
+    ]
+  },
+  "Kombuseevi [2D | Tamil]": {
+    "shows": 4,
+    "gross": 0.0,
+    "sold": 0,
+    "totalSeats": 1788,
+    "venues": 1,
+    "cities": 1,
+    "fastfilling": 0,
+    "housefull": 0,
+    "occupancy": 0.0,
+    "details": [
+      {
+        "city": "Sattur",
+        "state": "Tamil Nadu",
+        "venues": 1,
+        "shows": 4,
+        "gross": 0.0,
+        "sold": 0,
+        "totalSeats": 1788,
+        "fastfilling": 0,
+        "housefull": 0,
+        "occupancy": 0.0
+      }
+    ],
+    "Chain_details": [
+      {
+        "chain": "Ticketnew",
+        "venues": 1,
+        "shows": 4,
+        "gross": 0.0,
+        "sold": 0,
+        "totalSeats": 1788,
+        "fastfilling": 0,
+        "housefull": 0,
+        "occupancy": 0.0
       }
     ]
   },
