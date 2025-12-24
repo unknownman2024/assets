@@ -1,0 +1,55 @@
+{
+  "last_updated": "2025-12-25 00:48 IST",
+  "movies": {
+    "Dhurandhar [2D | Hindi]": {
+      "shows": 3,
+      "gross": 7900.0,
+      "sold": 30,
+      "totalSeats": 924,
+      "venues": 3,
+      "cities": 2,
+      "fastfilling": 0,
+      "housefull": 0,
+      "occupancy": 3.25,
+      "details": [
+        {
+          "city": "Mumbai",
+          "state": "Maharashtra",
+          "venues": 2,
+          "shows": 2,
+          "gross": 7900.0,
+          "sold": 30,
+          "totalSeats": 590,
+          "fastfilling": 0,
+          "housefull": 0,
+          "occupancy": 5.08
+        },
+        {
+          "city": "Nashik",
+          "state": "Maharashtra",
+          "venues": 1,
+          "shows": 1,
+          "gross": 0.0,
+          "sold": 0,
+          "totalSeats": 334,
+          "fastfilling": 0,
+          "housefull": 0,
+          "occupancy": 0.0
+        }
+      ],
+      "Chain_details": [
+        {
+          "chain": "MovieMax",
+          "venues": 3,
+          "shows": 3,
+          "gross": 7900.0,
+          "sold": 30,
+          "totalSeats": 924,
+          "fastfilling": 0,
+          "housefull": 0,
+          "occupancy": 3.25
+        }
+      ]
+    }
+  }
+}
