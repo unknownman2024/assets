@@ -1,14 +1,25 @@
 {
   "Dhurandhar [2D | Hindi]": {
-    "shows": 2,
-    "gross": 5260.0,
-    "sold": 16,
-    "totalSeats": 352,
-    "venues": 2,
-    "cities": 2,
+    "shows": 10,
+    "gross": 82990.0,
+    "sold": 234,
+    "totalSeats": 1928,
+    "venues": 9,
+    "cities": 7,
+    "fastfilling": 1,
+    "housefull": 0,
+    "occupancy": 12.14
+  },
+  "Avatar: Fire and Ash [IMAX 3D | English]": {
+    "shows": 1,
+    "gross": 23160.0,
+    "sold": 60,
+    "totalSeats": 316,
+    "venues": 1,
+    "cities": 1,
     "fastfilling": 0,
     "housefull": 0,
-    "occupancy": 4.55
+    "occupancy": 18.99
   },
   "Avatar: Fire and Ash [IMAX 3D | Hindi]": {
     "shows": 1,
@@ -21,26 +32,70 @@
     "housefull": 0,
     "occupancy": 73.44
   },
+  "Avatar: Fire and Ash [3D | English]": {
+    "shows": 2,
+    "gross": 15690.0,
+    "sold": 41,
+    "totalSeats": 514,
+    "venues": 2,
+    "cities": 2,
+    "fastfilling": 0,
+    "housefull": 0,
+    "occupancy": 7.98
+  },
+  "Avatar: Fire and Ash [3D | Hindi]": {
+    "shows": 1,
+    "gross": 2200.0,
+    "sold": 10,
+    "totalSeats": 159,
+    "venues": 1,
+    "cities": 1,
+    "fastfilling": 0,
+    "housefull": 0,
+    "occupancy": 6.29
+  },
+  "Mark [2D | Kannada]": {
+    "shows": 5,
+    "gross": 25360.0,
+    "sold": 81,
+    "totalSeats": 1449,
+    "venues": 4,
+    "cities": 1,
+    "fastfilling": 0,
+    "housefull": 0,
+    "occupancy": 5.59
+  },
   "Avatar: Fire and Ash [4DX 3D | English]": {
     "shows": 2,
-    "gross": 53940.0,
-    "sold": 112,
-    "totalSeats": 164,
+    "gross": 60140.0,
+    "sold": 124,
+    "totalSeats": 176,
     "venues": 2,
     "cities": 1,
     "fastfilling": 2,
     "housefull": 0,
-    "occupancy": 68.29
+    "occupancy": 70.45
   },
-  "Mark [2D | Kannada]": {
-    "shows": 3,
-    "gross": 10600.0,
-    "sold": 21,
-    "totalSeats": 815,
-    "venues": 2,
+  "45 [2D | Kannada]": {
+    "shows": 1,
+    "gross": 5150.0,
+    "sold": 27,
+    "totalSeats": 456,
+    "venues": 1,
     "cities": 1,
     "fastfilling": 0,
     "housefull": 0,
-    "occupancy": 2.58
+    "occupancy": 5.92
+  },
+  "Tu Meri Main Tera Main Tera Tu Meri [2D | Hindi]": {
+    "shows": 1,
+    "gross": 0.0,
+    "sold": 0,
+    "totalSeats": 81,
+    "venues": 1,
+    "cities": 1,
+    "fastfilling": 0,
+    "housefull": 0,
+    "occupancy": 0.0
   }
 }
