@@ -1,0 +1,4 @@
+Compact-format this Python code without fully minifying it. Keep all important section comments and meaningful structure. Remove excessive blank lines and unnecessary line breaks, but keep imports, variables, function definitions, dictionaries, conditions, and function calls reasonably readable. Combine simple related statements only when it improves compactness without hurting readability. Do NOT put multiple imports/statements on one line using semicolons. Do NOT remove comments. Do NOT change any logic, functionality, variable names, function names, execution order, strings, or behavior. Keep the code valid and executable.
+
+Target style: approximately 20–30% shorter than the original, while still looking like normal professional Python code.
+Return the complete code only.

@@ -1,0 +1,360 @@
+name: BMS TmrwAdv 1–9 + Combine (Matrix | HARD SAFE)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 0,2,4,6,8,10,12,14,16 * * *"
+
+permissions:
+  contents: write
+  actions: read
+
+# ❌ NO GLOBAL CONCURRENCY
+# Precheck handles workflow-level skipping.
+
+jobs:
+
+# =====================================================
+# 0️⃣ PRECHECK
+# Skip entire workflow if another main.yml run
+# is already active or queued.
+# =====================================================
+  precheck:
+    name: Skip if another run active
+    runs-on: ubuntu-latest
+
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+
+    steps:
+      - name: 🔍 Check running workflows
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "main.yml",
+              per_page: 100
+            });
+
+            const activeRuns = runs.data.workflow_runs.filter(r =>
+              (r.status === "in_progress" || r.status === "queued") &&
+              r.id !== context.runId
+            );
+
+            if (activeRuns.length > 0) {
+              console.log("🚫 Another main.yml run is active/queued.");
+              console.log("🚫 Skipping shards and combiner.");
+
+              core.setOutput("should_run", "false");
+            } else {
+              console.log("✅ No other main.yml run is active.");
+              console.log("✅ Starting shards.");
+
+              core.setOutput("should_run", "true");
+            }
+
+# =====================================================
+# 1️⃣ SHARDS
+# =====================================================
+  shards:
+    name: Shard ${{ matrix.shard }}
+
+    needs: precheck
+
+    if: needs.precheck.outputs.should_run == 'true'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1,2,3,4,5,6,7,8,9]
+
+    steps:
+
+      # -------------------------------------------------
+      # CHECKOUT
+      # -------------------------------------------------
+      - name: 🧾 Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      # -------------------------------------------------
+      # SYNC MAIN
+      # -------------------------------------------------
+      - name: 🔄 Sync latest main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+
+      # -------------------------------------------------
+      # PYTHON
+      # -------------------------------------------------
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # -------------------------------------------------
+      # CHROME
+      # -------------------------------------------------
+      - name: 🌐 Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+
+          sudo dpkg -i google-chrome-stable_current_amd64.deb || \
+            sudo apt-get -f install -y
+
+          rm -f google-chrome-stable_current_amd64.deb
+
+          google-chrome --version
+
+      # -------------------------------------------------
+      # DEPENDENCIES
+      # -------------------------------------------------
+      - name: 📦 Install dependencies
+        run: |
+          pip install selenium webdriver-manager cloudscraper aiohttp pytz
+
+      # -------------------------------------------------
+      # RUN SHARD
+      # -------------------------------------------------
+      - name: 🚀 Run shard scraper
+        env:
+          SHARD_ID: ${{ matrix.shard }}
+          WORKER_UA: ${{ secrets.WORKER_UA }}
+          WORKER_KEY: ${{ secrets.WORKER_KEY }}
+        run: |
+          python bms${{ matrix.shard }}.py
+
+      # -------------------------------------------------
+      # COMMIT + PUSH
+      # -------------------------------------------------
+      - name: 💾 Commit & push shard data
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git add advance/
+
+          git commit \
+            -m "BMS shard ${{ matrix.shard }} ($(date +'%Y-%m-%d %H:%M IST'))" \
+            || exit 0
+
+          for i in 1 2 3 4 5; do
+
+            git pull --rebase origin main || true
+
+            if git push origin main; then
+              echo "✅ Shard push successful"
+              exit 0
+            fi
+
+            echo "⚠️ Retry push $i..."
+            sleep 4
+
+          done
+
+          git push --force-with-lease origin main || true
+
+# =====================================================
+# 2️⃣ COMBINER
+#
+# Runs even if shards fail.
+#
+# SECOND ACTIVE-RUN CHECK:
+# If another main.yml run started while shards were
+# running, the combiner skips itself.
+# =====================================================
+  combine:
+    name: Combine all shards (SAFE)
+
+    needs:
+      - precheck
+      - shards
+
+    if: |
+      always() &&
+      needs.precheck.outputs.should_run == 'true'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    concurrency:
+      group: bms-tmrwadv-combiner
+      cancel-in-progress: false
+
+    steps:
+
+      # -------------------------------------------------
+      # SECOND ACTIVE RUN PRECHECK
+      # -------------------------------------------------
+      - name: 🔍 Check if another workflow run is active
+        id: active_check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "main.yml",
+              per_page: 100
+            });
+
+            const activeRuns = runs.data.workflow_runs.filter(r =>
+              (r.status === "in_progress" || r.status === "queued") &&
+              r.id !== context.runId
+            );
+
+            if (activeRuns.length > 0) {
+              console.log("🚫 Another main.yml run is active/queued.");
+              console.log("🚫 Combiner will NOT run.");
+
+              core.setOutput("skip", "true");
+            } else {
+              console.log("✅ No other main.yml run is active.");
+              console.log("✅ Combiner may proceed.");
+
+              core.setOutput("skip", "false");
+            }
+
+      # -------------------------------------------------
+      # SKIP COMBINER
+      # -------------------------------------------------
+      - name: 🛑 Skip combiner
+        if: steps.active_check.outputs.skip == 'true'
+        run: |
+          echo "🚫 Another main.yml run is active/queued."
+          echo "🚫 Skipping combiner."
+          exit 0
+
+      # -------------------------------------------------
+      # CHECKOUT
+      # -------------------------------------------------
+      - name: 🧾 Checkout repo
+        if: steps.active_check.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      # -------------------------------------------------
+      # SYNC MAIN
+      # -------------------------------------------------
+      - name: 🔄 Sync latest main
+        if: steps.active_check.outputs.skip != 'true'
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+
+      # -------------------------------------------------
+      # PYTHON
+      # -------------------------------------------------
+      - name: 🐍 Setup Python
+        if: steps.active_check.outputs.skip != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # -------------------------------------------------
+      # DEPENDENCIES
+      # -------------------------------------------------
+      - name: 📦 Install deps
+        if: steps.active_check.outputs.skip != 'true'
+        run: |
+          pip install pytz
+
+      # -------------------------------------------------
+      # SAFE COMBINE + PUSH
+      # -------------------------------------------------
+      - name: 🔁 Safe combine + push
+        if: steps.active_check.outputs.skip != 'true'
+        run: |
+          set -e
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          MAX_TRIES=6
+          TRY=1
+
+          while [ $TRY -le $MAX_TRIES ]; do
+
+            echo "🔁 Combine attempt $TRY / $MAX_TRIES"
+
+            # Always use latest main
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Run combiner
+            python combine_shards.py
+
+            # Stage combined data
+            git add advance/
+
+            # No changes
+            if git diff --cached --quiet; then
+              echo "✅ No changes after combine"
+              exit 0
+            fi
+
+            # Commit
+            git commit \
+              -m "Final combined BMS data ($(date +'%Y-%m-%d %H:%M IST'))"
+
+            # Push
+            if git push origin main; then
+              echo "✅ Combine push successful"
+              exit 0
+            fi
+
+            echo "⚠️ Push failed — main moved."
+            echo "🔁 Retrying..."
+
+            TRY=$((TRY+1))
+            sleep 5
+
+          done
+
+          echo "❌ Combine failed after $MAX_TRIES attempts"
+          exit 1
+
+# =====================================================
+# 3️⃣ AUTO RE-RUN COMBINER
+# =====================================================
+  retry-combine:
+    name: Auto re-run combiner
+
+    needs: combine
+
+    if: failure()
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: 🔁 Trigger workflow again
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+
+          script: |
+            console.log("🔁 Triggering another main.yml run...");
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "main.yml",
+              ref: "main"
+            });
+
+            console.log("✅ Workflow retry triggered.");

@@ -1,0 +1,609 @@
+name: BMS DailyBO 1to9 + Combine + Market Strip
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+
+# =====================================================
+# 0️⃣ PRECHECK
+# Skip entire workflow if another run is active
+# =====================================================
+
+  precheck:
+    name: Skip if another run active
+    runs-on: ubuntu-latest
+
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+
+    steps:
+
+      - name: Check running workflows
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "dailymain.yml",
+              status: "in_progress",
+              per_page: 100
+            });
+
+            const otherRuns = runs.data.workflow_runs.filter(
+              r => r.id !== context.runId
+            );
+
+            if (otherRuns.length > 0) {
+              console.log("🚫 Another dailymain.yml run is already active.");
+              console.log("🚫 Skipping shards, combiner and market strip.");
+
+              core.setOutput("should_run", "false");
+            } else {
+              console.log("✅ No other run active.");
+              console.log("✅ Starting shards.");
+
+              core.setOutput("should_run", "true");
+            }
+
+
+# =====================================================
+# 1️⃣ SHARDS
+# =====================================================
+
+  shards:
+    name: Shard ${{ matrix.shard }}
+
+    needs: precheck
+
+    if: needs.precheck.outputs.should_run == 'true'
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 40
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        shard: [1,2,3,4,5,6,7,8,9]
+
+    steps:
+
+      # -------------------------------------------------
+      # CHECKOUT
+      # -------------------------------------------------
+
+      - name: 🧾 Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+
+      # -------------------------------------------------
+      # PYTHON
+      # -------------------------------------------------
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+
+      # -------------------------------------------------
+      # SHARDS 1–8: CHROME
+      # -------------------------------------------------
+
+      - name: 🌐 Install Chrome
+        if: matrix.shard != 9
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+
+          sudo dpkg -i google-chrome-stable_current_amd64.deb || \
+            sudo apt-get -f install -y
+
+          rm -f google-chrome-stable_current_amd64.deb
+
+          google-chrome --version
+
+
+      # -------------------------------------------------
+      # SHARDS 1–8 DEPENDENCIES
+      # -------------------------------------------------
+
+      - name: 📦 Install dependencies (shards 1–8)
+        if: matrix.shard != 9
+        run: |
+          pip install selenium webdriver-manager cloudscraper aiohttp pytz
+
+
+      # -------------------------------------------------
+      # SHARD 9 DEPENDENCIES
+      # -------------------------------------------------
+
+      - name: 📦 Install minimal dependencies (shard 9)
+        if: matrix.shard == 9
+        run: |
+          pip install pytz
+
+
+      # -------------------------------------------------
+      # RUN SHARDS 1–8
+      # -------------------------------------------------
+
+      - name: 🚀 Run shard scraper (1–8)
+        if: matrix.shard != 9
+        run: |
+          python bmsdaily${{ matrix.shard }}.py
+        env:
+          WORKER_UA: ${{ secrets.WORKER_UA }}
+          WORKER_KEY: ${{ secrets.WORKER_KEY }}
+
+
+      # -------------------------------------------------
+      # RUN SHARD 9
+      # -------------------------------------------------
+
+      - name: 🚀 Run District → BMS9 converter
+        if: matrix.shard == 9
+        run: |
+          python bmsdaily9.py
+
+
+      # -------------------------------------------------
+      # COMMIT + PUSH
+      # -------------------------------------------------
+
+      - name: 💾 Commit & push shard data
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git add daily/
+
+          git commit \
+            -m "Daily BMS shard ${{ matrix.shard }} ($(date +'%Y-%m-%d %H:%M'))" \
+            || exit 0
+
+          for i in 1 2 3; do
+            git pull --rebase origin main || true
+
+            if git push origin main; then
+              echo "✅ Shard push successful"
+              exit 0
+            fi
+
+            echo "⚠️ Push failed — retrying..."
+            sleep 3
+          done
+
+          git push --force-with-lease origin main || true
+
+
+# =====================================================
+# 2️⃣ COMBINER
+# Runs after ALL shards finish.
+# =====================================================
+
+  combine:
+    name: Combine all shards (Safe)
+
+    needs:
+      - precheck
+      - shards
+
+    if: |
+      always() &&
+      needs.precheck.outputs.should_run == 'true'
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 30
+
+    concurrency:
+      group: bms-combiner
+      cancel-in-progress: false
+
+    steps:
+
+      # -------------------------------------------------
+      # ACTIVE RUN PRECHECK
+      # -------------------------------------------------
+
+      - name: 🔍 Check if another workflow run is active
+        id: active_check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "dailymain.yml",
+              status: "in_progress",
+              per_page: 100
+            });
+
+            const otherRuns = runs.data.workflow_runs.filter(
+              r => r.id !== context.runId
+            );
+
+            if (otherRuns.length > 0) {
+              console.log("🚫 Another dailymain.yml run is active.");
+              console.log("🚫 Combiner will NOT run.");
+
+              core.setOutput("skip", "true");
+            } else {
+              console.log("✅ No other workflow run is active.");
+              console.log("✅ Combiner may proceed.");
+
+              core.setOutput("skip", "false");
+            }
+
+
+      # -------------------------------------------------
+      # STOP COMBINER IF ANOTHER RUN EXISTS
+      # -------------------------------------------------
+
+      - name: 🛑 Skip combiner
+        if: steps.active_check.outputs.skip == 'true'
+        run: |
+          echo "🚫 Another dailymain.yml run is active."
+          echo "🚫 Skipping combiner."
+          exit 0
+
+
+      # -------------------------------------------------
+      # CHECKOUT
+      # -------------------------------------------------
+
+      - name: 🧾 Checkout repo
+        if: steps.active_check.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+
+      # -------------------------------------------------
+      # PYTHON
+      # -------------------------------------------------
+
+      - name: 🐍 Setup Python
+        if: steps.active_check.outputs.skip != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+
+      # -------------------------------------------------
+      # SAFE COMBINE + PUSH
+      # -------------------------------------------------
+
+      - name: 🔁 Safe combine + push
+        if: steps.active_check.outputs.skip != 'true'
+        run: |
+          set -e
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          MAX_TRIES=6
+          TRY=1
+
+          while [ $TRY -le $MAX_TRIES ]; do
+
+            echo "🔁 Combine attempt $TRY / $MAX_TRIES"
+
+            # Always get newest main
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Install dependency
+            pip install pytz
+
+            # Run combiner
+            python combine_dailyshards.py
+
+            # Stage output
+            git add daily/
+
+            # Nothing changed
+            if git diff --cached --quiet; then
+              echo "✅ No changes after combine"
+              exit 0
+            fi
+
+            # Commit
+            git commit \
+              -m "Final combined BMS data ($(date -u +'%Y-%m-%d %H:%M UTC'))"
+
+            # Push
+            if git push origin main; then
+              echo "✅ Combine push successful"
+              exit 0
+            fi
+
+            echo "⚠️ Push failed — main moved."
+            echo "🔁 Retrying..."
+
+            TRY=$((TRY+1))
+            sleep 5
+
+          done
+
+          echo "❌ Combine failed after $MAX_TRIES attempts"
+          exit 1
+
+
+# =====================================================
+# 3️⃣ AUTO RETRY COMBINER
+#
+# IMPORTANT:
+# This retries ONLY the combiner.
+# It does NOT rerun shards 1–9.
+# =====================================================
+
+  retry-combine:
+    name: Auto retry combiner
+
+    needs: combine
+
+    if: |
+      always() &&
+      needs.combine.result == 'failure'
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 30
+
+    concurrency:
+      group: bms-combiner
+      cancel-in-progress: false
+
+    steps:
+
+      # -------------------------------------------------
+      # CHECKOUT
+      # -------------------------------------------------
+
+      - name: 🧾 Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+
+      # -------------------------------------------------
+      # PYTHON
+      # -------------------------------------------------
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+
+      # -------------------------------------------------
+      # RETRY COMBINER
+      # -------------------------------------------------
+
+      - name: 🔁 Retry combine + push
+        run: |
+          set -e
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          MAX_TRIES=6
+          TRY=1
+
+          while [ $TRY -le $MAX_TRIES ]; do
+
+            echo "🔁 AUTO RETRY — Combine attempt $TRY / $MAX_TRIES"
+
+            # Always use latest main
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Install dependency
+            pip install pytz
+
+            # Run combiner
+            python combine_dailyshards.py
+
+            # Stage output
+            git add daily/
+
+            # Nothing changed
+            if git diff --cached --quiet; then
+              echo "✅ No changes after retry combine"
+              exit 0
+            fi
+
+            # Commit
+            git commit \
+              -m "Final combined BMS data - retry ($(date -u +'%Y-%m-%d %H:%M UTC'))"
+
+            # Push
+            if git push origin main; then
+              echo "✅ AUTO RETRY COMBINE PUSH SUCCESSFUL"
+              exit 0
+            fi
+
+            echo "⚠️ Retry push failed — main moved."
+            echo "🔁 Retrying..."
+
+            TRY=$((TRY+1))
+            sleep 5
+
+          done
+
+          echo "❌ Auto retry combiner failed after $MAX_TRIES attempts"
+          exit 1
+
+
+# =====================================================
+# 4️⃣ MARKET STRIP
+#
+# Runs ONLY after:
+#
+#   combine SUCCESS
+#       OR
+#   retry-combine SUCCESS
+#
+# Therefore Market Strip never runs after a failed combine.
+# =====================================================
+
+  market-strip:
+    name: Generate Market Strip
+
+    needs:
+      - combine
+      - retry-combine
+
+    if: |
+      always() &&
+      (
+        needs.combine.result == 'success' ||
+        needs.retry-combine.result == 'success'
+      )
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 20
+
+    concurrency:
+      group: market-strip
+      cancel-in-progress: false
+
+    steps:
+
+      # -------------------------------------------------
+      # CHECKOUT LATEST MAIN
+      # -------------------------------------------------
+
+      - name: 🧾 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+
+      # -------------------------------------------------
+      # PYTHON
+      # -------------------------------------------------
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+
+      # -------------------------------------------------
+      # DEPENDENCIES
+      # -------------------------------------------------
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # No external dependencies required by marketstrip.py
+
+
+      # -------------------------------------------------
+      # RUN MARKET STRIP
+      # -------------------------------------------------
+
+      - name: 📊 Run market strip generator
+        run: |
+          python marketstrip.py
+
+
+      # -------------------------------------------------
+      # COMMIT + PUSH
+      # -------------------------------------------------
+
+      - name: 💾 Commit and push marketstrip
+        run: |
+          set -e
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data/marketstrip.json
+
+          # Nothing changed
+          if git diff --staged --quiet; then
+            echo "ℹ️ No changes to marketstrip.json"
+            exit 0
+          fi
+
+          git commit \
+            -m "chore: update marketstrip.json [skip ci]"
+
+          MAX_RETRIES=5
+          RETRY=0
+
+          while [ $RETRY -lt $MAX_RETRIES ]; do
+
+            echo "🔄 Market Strip push attempt $((RETRY+1))/$MAX_RETRIES"
+
+            # Get newest main
+            git fetch origin main
+
+            # Rebase our commit
+            if git rebase origin/main; then
+
+              if git push origin main; then
+                echo "✅ Market Strip push successful"
+                exit 0
+              fi
+
+            else
+              echo "⚠️ Rebase conflict"
+
+              git rebase --abort || true
+
+              # Reset to latest main
+              git reset --hard origin/main
+
+              # Re-run market strip against latest data
+              python marketstrip.py
+
+              git add data/marketstrip.json
+
+              if git diff --staged --quiet; then
+                echo "ℹ️ Market Strip already up to date"
+                exit 0
+              fi
+
+              git commit \
+                -m "chore: update marketstrip.json [skip ci]" \
+                || true
+
+              if git push origin main; then
+                echo "✅ Market Strip push successful after refresh"
+                exit 0
+              fi
+            fi
+
+            echo "⚠️ Push failed — retrying in 5 seconds..."
+
+            RETRY=$((RETRY+1))
+            sleep 5
+
+          done
+
+          echo "❌ Market Strip push failed after $MAX_RETRIES attempts"
+          exit 1
