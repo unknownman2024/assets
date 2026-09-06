@@ -148,3 +148,48 @@
 [10:29:09] ✅ DONE | Shows=2470 | Movies=47
 [10:29:09] 📄 Detailed: advance/data/20260907/detailed9.json
 [10:29:09] 📄 Summary: advance/data/20260907/movie_summary9.json
+[16:46:39] 🚀 DISTRICT → BMS9 CONVERTER STARTED
+[16:46:39] 📅 Date: 2026-09-07
+[16:46:39] 🚫 Worker logic: DISABLED
+[16:46:39] 🔑 Venue matching: ID ONLY
+[16:46:39] 🚫 alldistrictvenues.json: NOT USED
+[16:46:39] 🚫 Venue-name matching: NOT USED
+[16:46:39] 📍 Selected venue records: 756
+[16:46:39] 🎯 Selected venue IDs: 756
+[16:46:39] 📡 Fetching Detailed JSON:
+[16:46:39]    https://districtdata2026.pages.dev/advance/2026-09-07_Detailed.json
+[16:46:39] ✅ Source loaded
+[16:46:39]    Source date: 2026-09-07
+[16:46:39]    Last updated: 04:06 PM, 06 September 2026
+[16:46:39]    Movie keys: 85
+[16:46:39] 🎬 Source movie keys: 85
+[16:46:39] 🎟️ Selected-venue show rows: 3189
+[16:46:39] 🚫 Non-selected show rows ignored: 14708
+[16:46:39] ℹ️ Non-selected venue IDs encountered: 988
+[16:46:39]    ⏭️ Source venue ID not selected: 1018430
+[16:46:39]    ⏭️ Source venue ID not selected: 1392
+[16:46:39]    ⏭️ Source venue ID not selected: 7329
+[16:46:39]    ⏭️ Source venue ID not selected: 9900
+[16:46:39]    ⏭️ Source venue ID not selected: 916
+[16:46:39]    ⏭️ Source venue ID not selected: 1022901
+[16:46:39]    ⏭️ Source venue ID not selected: 20936
+[16:46:39]    ⏭️ Source venue ID not selected: 45099
+[16:46:39]    ⏭️ Source venue ID not selected: 6072
+[16:46:39]    ⏭️ Source venue ID not selected: 24971
+[16:46:39]    ⏭️ Source venue ID not selected: 1013612
+[16:46:39]    ⏭️ Source venue ID not selected: 1065724
+[16:46:39]    ⏭️ Source venue ID not selected: 122
+[16:46:39]    ⏭️ Source venue ID not selected: 1036571
+[16:46:39]    ⏭️ Source venue ID not selected: 1027123
+[16:46:39]    ⏭️ Source venue ID not selected: 7397
+[16:46:39]    ⏭️ Source venue ID not selected: 42079
+[16:46:39]    ⏭️ Source venue ID not selected: 12939
+[16:46:39]    ⏭️ Source venue ID not selected: 58725
+[16:46:39]    ⏭️ Source venue ID not selected: 1020732
+[16:46:39]    ... and 968 more
+[16:46:39] 📦 Previous shows: 2470
+[16:46:39] 🆕 Fresh shows: 3189
+[16:46:39] 📦 Final shows: 3240
+[16:46:39] ✅ DONE | Shows=3240 | Movies=49
+[16:46:39] 📄 Detailed: advance/data/20260907/detailed9.json
+[16:46:39] 📄 Summary: advance/data/20260907/movie_summary9.json
