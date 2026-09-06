@@ -1,113 +1,36 @@
 {
-  "Toxic: A Fairy Tale for Grown-ups [2D | Kannada]": {
-    "shows": 18,
-    "gross": 265860.0,
-    "sold": 988,
-    "totalSeats": 4053,
-    "venues": 4,
-    "cities": 4,
-    "fastfilling": 3,
-    "housefull": 1,
-    "occupancy": 24.38
-  },
-  "Hanuman Ansh [2D | Hindi]": {
-    "shows": 446,
-    "gross": 14932959.0,
-    "sold": 58350,
-    "totalSeats": 79801,
-    "venues": 106,
-    "cities": 68,
-    "fastfilling": 167,
-    "housefull": 181,
-    "occupancy": 73.12
-  },
-  "Mirzapur: The Movie [2D | Telugu]": {
-    "shows": 32,
-    "gross": 443519.0,
-    "sold": 2497,
-    "totalSeats": 7322,
-    "venues": 12,
-    "cities": 5,
-    "fastfilling": 10,
-    "housefull": 0,
-    "occupancy": 34.1
-  },
-  "Romanchakam [2D | Telugu]": {
-    "shows": 85,
-    "gross": 1083567.0,
-    "sold": 7223,
-    "totalSeats": 27016,
-    "venues": 31,
-    "cities": 14,
-    "fastfilling": 19,
-    "housefull": 0,
-    "occupancy": 26.74
-  },
   "Irumudi [2D | Telugu]": {
     "shows": 202,
-    "gross": 6846265.0,
-    "sold": 47128,
+    "gross": 6846973.0,
+    "sold": 47132,
     "totalSeats": 67400,
     "venues": 53,
     "cities": 28,
     "fastfilling": 71,
     "housefull": 58,
-    "occupancy": 69.92
+    "occupancy": 69.93
   },
   "Sahaa - Life of Sanju [2D | Telugu]": {
     "shows": 8,
-    "gross": 168751.0,
-    "sold": 932,
+    "gross": 168552.0,
+    "sold": 931,
     "totalSeats": 1619,
     "venues": 7,
     "cities": 4,
     "fastfilling": 5,
     "housefull": 1,
-    "occupancy": 57.57
+    "occupancy": 57.5
   },
   "Bethlehem Kudumba Unit [2D | Telugu]": {
     "shows": 60,
-    "gross": 1193184.0,
-    "sold": 6841,
+    "gross": 1192985.0,
+    "sold": 6840,
     "totalSeats": 21266,
     "venues": 23,
     "cities": 9,
     "fastfilling": 15,
     "housefull": 5,
-    "occupancy": 32.17
-  },
-  "I'm Game [2D | Telugu]": {
-    "shows": 74,
-    "gross": 1113246.0,
-    "sold": 6283,
-    "totalSeats": 22204,
-    "venues": 27,
-    "cities": 12,
-    "fastfilling": 19,
-    "housefull": 3,
-    "occupancy": 28.3
-  },
-  "Mirzapur: The Movie [2D | Hindi]": {
-    "shows": 690,
-    "gross": 21676948.37,
-    "sold": 85275,
-    "totalSeats": 151366,
-    "venues": 133,
-    "cities": 76,
-    "fastfilling": 301,
-    "housefull": 125,
-    "occupancy": 56.34
-  },
-  "Vishwanath and Sons [2D | Telugu]": {
-    "shows": 24,
-    "gross": 452756.0,
-    "sold": 2299,
-    "totalSeats": 4768,
-    "venues": 15,
-    "cities": 6,
-    "fastfilling": 12,
-    "housefull": 0,
-    "occupancy": 48.22
+    "occupancy": 32.16
   },
   "Ramba Oorvasi Menaka [2D | Telugu]": {
     "shows": 65,
@@ -122,36 +45,47 @@
   },
   "Bethlehem Kudumba Unit [2D | Malayalam]": {
     "shows": 215,
-    "gross": 6417708.2,
-    "sold": 38894,
+    "gross": 6418344.8,
+    "sold": 38899,
     "totalSeats": 49230,
     "venues": 39,
     "cities": 35,
     "fastfilling": 134,
     "housefull": 52,
-    "occupancy": 79.0
+    "occupancy": 79.01
+  },
+  "Romanchakam [2D | Telugu]": {
+    "shows": 85,
+    "gross": 1084629.0,
+    "sold": 7226,
+    "totalSeats": 27016,
+    "venues": 31,
+    "cities": 14,
+    "fastfilling": 19,
+    "housefull": 0,
+    "occupancy": 26.75
   },
   "I'm Game [2D | Malayalam]": {
     "shows": 135,
-    "gross": 2688582.69,
-    "sold": 14652,
+    "gross": 2689822.69,
+    "sold": 14657,
     "totalSeats": 27083,
     "venues": 31,
     "cities": 29,
     "fastfilling": 79,
     "housefull": 0,
-    "occupancy": 54.1
+    "occupancy": 54.12
   },
   "Toxic: A Fairy Tale for Grown-ups [2D | Malayalam]": {
     "shows": 1,
-    "gross": 4350.0,
-    "sold": 28,
+    "gross": 4690.0,
+    "sold": 30,
     "totalSeats": 140,
     "venues": 1,
     "cities": 1,
     "fastfilling": 0,
     "housefull": 0,
-    "occupancy": 20.0
+    "occupancy": 21.43
   },
   "Toxic: A Fairy Tale for Grown-ups [2D | Hindi]": {
     "shows": 67,
@@ -164,6 +98,17 @@
     "housefull": 0,
     "occupancy": 10.25
   },
+  "Hanuman Ansh [2D | Hindi]": {
+    "shows": 446,
+    "gross": 14925719.0,
+    "sold": 58319,
+    "totalSeats": 79801,
+    "venues": 106,
+    "cities": 68,
+    "fastfilling": 167,
+    "housefull": 181,
+    "occupancy": 73.08
+  },
   "I'm Game [2D | Tamil]": {
     "shows": 37,
     "gross": 388712.85,
@@ -175,16 +120,27 @@
     "housefull": 0,
     "occupancy": 18.09
   },
+  "Mirzapur: The Movie [2D | Hindi]": {
+    "shows": 690,
+    "gross": 21687208.37,
+    "sold": 85272,
+    "totalSeats": 151366,
+    "venues": 133,
+    "cities": 76,
+    "fastfilling": 300,
+    "housefull": 125,
+    "occupancy": 56.33
+  },
   "Tom & Cherry [2D | Gujarati]": {
     "shows": 16,
-    "gross": 514260.0,
-    "sold": 1981,
+    "gross": 515100.0,
+    "sold": 1984,
     "totalSeats": 3375,
     "venues": 8,
     "cities": 1,
     "fastfilling": 8,
     "housefull": 2,
-    "occupancy": 58.7
+    "occupancy": 58.79
   },
   "Hi (2026) [2D | Tamil]": {
     "shows": 43,
@@ -197,38 +153,38 @@
     "housefull": 0,
     "occupancy": 25.45
   },
-  "Immortal [2D | Tamil]": {
-    "shows": 64,
-    "gross": 912445.05,
-    "sold": 8321,
-    "totalSeats": 22955,
-    "venues": 21,
-    "cities": 11,
-    "fastfilling": 16,
-    "housefull": 8,
-    "occupancy": 36.25
-  },
-  "Modha Rathri [2D | Tamil]": {
-    "shows": 22,
-    "gross": 292128.0,
-    "sold": 1765,
-    "totalSeats": 5593,
-    "venues": 10,
-    "cities": 7,
-    "fastfilling": 5,
-    "housefull": 2,
-    "occupancy": 31.56
-  },
   "Awarapan 2 [2D | Hindi]": {
     "shows": 6,
-    "gross": 36550.0,
-    "sold": 168,
+    "gross": 37590.0,
+    "sold": 172,
     "totalSeats": 1070,
     "venues": 5,
     "cities": 4,
     "fastfilling": 0,
     "housefull": 0,
-    "occupancy": 15.7
+    "occupancy": 16.07
+  },
+  "Vishwanath and Sons [2D | Telugu]": {
+    "shows": 24,
+    "gross": 452756.0,
+    "sold": 2299,
+    "totalSeats": 4768,
+    "venues": 15,
+    "cities": 6,
+    "fastfilling": 12,
+    "housefull": 0,
+    "occupancy": 48.22
+  },
+  "I'm Game [2D | Telugu]": {
+    "shows": 74,
+    "gross": 1110768.0,
+    "sold": 6269,
+    "totalSeats": 22204,
+    "venues": 27,
+    "cities": 12,
+    "fastfilling": 19,
+    "housefull": 3,
+    "occupancy": 28.23
   },
   "Dharmasthala Niyojakavargam [2D | Telugu]": {
     "shows": 7,
@@ -262,6 +218,50 @@
     "fastfilling": 0,
     "housefull": 0,
     "occupancy": 3.19
+  },
+  "Toxic: A Fairy Tale for Grown-ups [2D | Kannada]": {
+    "shows": 18,
+    "gross": 265860.0,
+    "sold": 988,
+    "totalSeats": 4053,
+    "venues": 4,
+    "cities": 4,
+    "fastfilling": 3,
+    "housefull": 1,
+    "occupancy": 24.38
+  },
+  "Mirzapur: The Movie [2D | Telugu]": {
+    "shows": 32,
+    "gross": 443519.0,
+    "sold": 2497,
+    "totalSeats": 7322,
+    "venues": 12,
+    "cities": 5,
+    "fastfilling": 10,
+    "housefull": 0,
+    "occupancy": 34.1
+  },
+  "Immortal [2D | Tamil]": {
+    "shows": 64,
+    "gross": 912445.05,
+    "sold": 8321,
+    "totalSeats": 22955,
+    "venues": 21,
+    "cities": 11,
+    "fastfilling": 16,
+    "housefull": 8,
+    "occupancy": 36.25
+  },
+  "Modha Rathri [2D | Tamil]": {
+    "shows": 22,
+    "gross": 292128.0,
+    "sold": 1765,
+    "totalSeats": 5593,
+    "venues": 10,
+    "cities": 7,
+    "fastfilling": 5,
+    "housefull": 2,
+    "occupancy": 31.56
   },
   "I'm Game [2D | Hindi]": {
     "shows": 7,
