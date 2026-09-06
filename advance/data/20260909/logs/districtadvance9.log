@@ -58,3 +58,18 @@
 [04:16:23] 📦 Existing detailed file preserved: advance/data/20260909/detailed9.json
 [04:16:23] 📦 Existing summary file preserved: advance/data/20260909/movie_summary9.json
 [04:16:23] ✅ DONE | Existing data preserved
+[17:36:31] 🚀 DISTRICT → BMS9 CONVERTER STARTED
+[17:36:31] 📅 Date: 2026-09-09
+[17:36:31] 🚫 Worker logic: DISABLED
+[17:36:31] 🔑 Venue matching: ID ONLY
+[17:36:31] 🚫 alldistrictvenues.json: NOT USED
+[17:36:31] 🚫 Venue-name matching: NOT USED
+[17:36:31] 📍 Selected venue records: 756
+[17:36:31] 🎯 Selected venue IDs: 756
+[17:36:31] 📡 Fetching Detailed JSON:
+[17:36:31]    https://districtdata2026.pages.dev/advance/2026-09-09_Detailed.json
+[17:36:31] ❌ Source file not found (404) – will create empty outputs
+[17:36:31] ⚠️ No source data – keeping existing output files unchanged
+[17:36:31] 📦 Existing detailed file preserved: advance/data/20260909/detailed9.json
+[17:36:31] 📦 Existing summary file preserved: advance/data/20260909/movie_summary9.json
+[17:36:31] ✅ DONE | Existing data preserved
