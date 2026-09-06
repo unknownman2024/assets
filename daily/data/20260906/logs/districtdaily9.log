@@ -418,3 +418,48 @@
 [10:06:58] ✅ DONE | Shows=1271 | Movies=49
 [10:06:58] 📄 Detailed: daily/data/20260906/detailed9.json
 [10:06:58] 📄 Summary: daily/data/20260906/movie_summary9.json
+[11:07:00] 🚀 DISTRICT → BMS9 CONVERTER STARTED
+[11:07:00] 📅 Date: 2026-09-06
+[11:07:00] 🚫 Worker logic: DISABLED
+[11:07:00] 🔑 Venue matching: ID ONLY
+[11:07:00] 🚫 alldistrictvenues.json: NOT USED
+[11:07:00] 🚫 Venue-name matching: NOT USED
+[11:07:00] 📍 Selected venue records: 756
+[11:07:00] 🎯 Selected venue IDs: 756
+[11:07:00] 📡 Fetching Detailed JSON:
+[11:07:00]    https://districtdata2026.pages.dev/boxoffice/2026-09-06_Detailed.json
+[11:07:00] ✅ Source loaded
+[11:07:00]    Source date: 2026-09-06
+[11:07:00]    Last updated: 10:21 AM, 06 September 2026
+[11:07:00]    Movie keys: 87
+[11:07:01] 🎬 Source movie keys: 87
+[11:07:01] 🎟️ Selected-venue show rows: 2282
+[11:07:01] 🚫 Non-selected show rows ignored: 9953
+[11:07:01] ℹ️ Non-selected venue IDs encountered: 1178
+[11:07:01]    ⏭️ Source venue ID not selected: 1093531
+[11:07:01]    ⏭️ Source venue ID not selected: 1023556
+[11:07:01]    ⏭️ Source venue ID not selected: 1039164
+[11:07:01]    ⏭️ Source venue ID not selected: 1031197
+[11:07:01]    ⏭️ Source venue ID not selected: 1042104
+[11:07:01]    ⏭️ Source venue ID not selected: 4337
+[11:07:01]    ⏭️ Source venue ID not selected: 1100807
+[11:07:01]    ⏭️ Source venue ID not selected: 1042335
+[11:07:01]    ⏭️ Source venue ID not selected: 1040322
+[11:07:01]    ⏭️ Source venue ID not selected: 10269
+[11:07:01]    ⏭️ Source venue ID not selected: 47384
+[11:07:01]    ⏭️ Source venue ID not selected: 1032674
+[11:07:01]    ⏭️ Source venue ID not selected: 1780
+[11:07:01]    ⏭️ Source venue ID not selected: 4732
+[11:07:01]    ⏭️ Source venue ID not selected: 1022258
+[11:07:01]    ⏭️ Source venue ID not selected: 1022306
+[11:07:01]    ⏭️ Source venue ID not selected: 1023586
+[11:07:01]    ⏭️ Source venue ID not selected: 1041392
+[11:07:01]    ⏭️ Source venue ID not selected: 1036948
+[11:07:01]    ⏭️ Source venue ID not selected: 41787
+[11:07:01]    ... and 1158 more
+[11:07:01] 📦 Previous shows: 1271
+[11:07:01] 🆕 Fresh shows: 2282
+[11:07:01] 📦 Final shows: 2282
+[11:07:01] ✅ DONE | Shows=2282 | Movies=52
+[11:07:01] 📄 Detailed: daily/data/20260906/detailed9.json
+[11:07:01] 📄 Summary: daily/data/20260906/movie_summary9.json
